@@ -339,11 +339,11 @@ function dropBankHTML(zones) {
 
 // Annotations décoratives du fond (lignes, textes, symboles, zones, hachures).
 // Elles sont sous les zones de réponse et ne sont pas des cibles de dépôt.
-function decorationsHTML(decos) {
+function decorationsHTML(decos, aspect = 1) {
   if (!decos || !decos.length) return ''
   const out = []
   for (const d of decos) {
-    const g = decoGeometry(d, (s) => SYMBOL_GLYPH[s] || '●')
+    const g = decoGeometry(d, (s) => SYMBOL_GLYPH[s] || '●', aspect)
     if (g.kind === 'line') {
       const segs = g.segments
         .map(
@@ -387,7 +387,8 @@ function mapHTML(map, instr) {
       ? "Glissez ou cliquez chaque étiquette sur le bon repère de la carte, puis vérifiez vos réponses."
       : instr
   const zones = zonesHTML(map.zones, 'map')
-  const decos = decorationsHTML(map.decorations)
+  const aspect = map.imageWidth && map.imageHeight ? map.imageWidth / map.imageHeight : 1
+  const decos = decorationsHTML(map.decorations, aspect)
   return `
 <div class="map-block" data-instr="${esc(consigne)}" data-mode="${esc(map.mode)}" data-center="${esc(JSON.stringify(map.center || [0, 0]))}" data-zoom="${map.zoom || 5}">
   <div class="map-stage">

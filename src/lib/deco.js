@@ -82,14 +82,19 @@ export function normalizeDecoration(d) {
 
 // Géométrie calculée d'une annotation : commune à l'éditeur et à l'export,
 // pour éviter toute divergence entre les deux rendus.
-export function decoGeometry(d, glyphOf) {
+//
+// `aspect` = largeur / hauteur de l'image. Les longueurs et les angles sont
+// calculés en pixels (et non dans un espace isotrope), sinon une diagonale
+// serait tracée avec le mauvais angle sur une image rectangulaire.
+export function decoGeometry(d, glyphOf, aspect = 1) {
+  const ratio = aspect > 0 ? aspect : 1
   if (d.type === 'line') {
     const segments = []
     for (let i = 1; i < d.points.length; i++) {
       const a = d.points[i - 1]
       const b = d.points[i]
-      const dx = b.x - a.x
-      const dy = b.y - a.y
+      const dx = b.x - a.x // fraction de la largeur
+      const dy = (b.y - a.y) / ratio // fraction de la hauteur -> ramenée à la largeur
       const len = Math.hypot(dx, dy)
       if (len < 0.0005) continue
       segments.push({

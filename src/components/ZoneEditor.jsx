@@ -141,7 +141,8 @@ export default function ZoneEditor({
 
   // ---------------- Outils de dessin sur le fond ----------------
   const draftFrom = (type, points, opts) => {
-    if (type === 'line') return { type: 'line', points, color: opts.color, width: 3 }
+    if (type === 'line' || type === 'linefree')
+      return { type: 'line', points, color: opts.color, width: 3 }
     const xs = points.map((p) => p.x)
     const ys = points.map((p) => p.y)
     const x = Math.min(...xs)
@@ -201,12 +202,17 @@ export default function ZoneEditor({
     const d = drawRef.current
     if (!d) return
     const p = toFrac(e.clientX, e.clientY)
-    if (d.type === 'line') {
+    if (d.type === 'linefree') {
+      // main levée : on accumule les points au fil du tracé
       const last = d.points[d.points.length - 1]
       if (Math.hypot(p.x - last.x, p.y - last.y) > 0.004) {
         d.points = [...d.points, p]
         setDraft(draftFrom(d.type, d.points, decoOpts))
       }
+    } else if (d.type === 'line') {
+      // droite : deux points seulement (départ → arrivée)
+      d.points = [d.points[0], p]
+      setDraft(draftFrom(d.type, d.points, decoOpts))
     } else {
       d.points = [d.points[0], p]
       setDraft(draftFrom(d.type, d.points, decoOpts))
@@ -218,7 +224,7 @@ export default function ZoneEditor({
     drawRef.current = null
     if (!d) return
     setDraft(null)
-    if (d.type === 'line') {
+    if (d.type === 'line' || d.type === 'linefree') {
       if (d.points.length >= 2) addDeco({ ...newDecoration('line'), points: d.points, color: decoOpts.color, width: 3 })
     } else {
       const r = draftFrom(d.type, d.points, decoOpts)
@@ -308,7 +314,8 @@ export default function ZoneEditor({
             <span className="hint" style={{ margin: 0 }}>Dessiner sur la carte :</span>
             {[
               ['select', '✋ Repères'],
-              ['line', '／ Ligne'],
+              ['line', '／ Droite'],
+              ['linefree', '〜 Main levée'],
               ['text', 'T Texte'],
               ['symbol', '✦ Symbole'],
               ['zone', '▧ Zone'],
@@ -322,14 +329,16 @@ export default function ZoneEditor({
                   k === 'select'
                     ? 'Déplacer et redimensionner les repères'
                     : k === 'line'
-                      ? 'Dessiner une ligne à main levée (glisser sur la carte)'
-                      : k === 'text'
-                        ? 'Placer un texte (clic sur la carte)'
-                        : k === 'symbol'
-                          ? 'Placer un symbole (clic sur la carte)'
-                          : k === 'zone'
-                            ? 'Tracer une zone colorée (glisser)'
-                            : 'Tracer une zone hachurée (glisser)'
+                      ? 'Tracer une droite : glisse du point de départ au point d\'arrivée'
+                      : k === 'linefree'
+                        ? 'Dessiner un trait à main levée (glisser sur la carte)'
+                        : k === 'text'
+                          ? 'Placer un texte (clic sur la carte)'
+                          : k === 'symbol'
+                            ? 'Placer un symbole (clic sur la carte)'
+                            : k === 'zone'
+                              ? 'Tracer une zone colorée (glisser)'
+                              : 'Tracer une zone hachurée (glisser)'
                 }
               >
                 {label}
@@ -376,12 +385,14 @@ export default function ZoneEditor({
           )}
           <span className="hint" style={{ margin: 0 }}>
             {tool === 'line'
-              ? 'Glisse sur la carte pour dessiner la ligne.'
-              : tool === 'text'
-                ? 'Clique sur la carte pour placer le texte.'
-                : tool === 'symbol'
-                  ? 'Clique sur la carte pour placer le symbole.'
-                  : 'Glisse sur la carte pour tracer la zone.'}
+              ? 'Glisse du point de départ au point d’arrivée : la droite est tracée entre les deux.'
+              : tool === 'linefree'
+                ? 'Glisse sur la carte pour dessiner le trait à main levée.'
+                : tool === 'text'
+                  ? 'Clique sur la carte pour placer le texte.'
+                  : tool === 'symbol'
+                    ? 'Clique sur la carte pour placer le symbole.'
+                    : 'Glisse sur la carte pour tracer la zone.'}
           </span>
         </div>
       )}
@@ -551,7 +562,10 @@ export default function ZoneEditor({
           onPointerUp={(e) => (tool === 'select' ? onPointerUp(e) : onDrawUp(e))}
           onPointerLeave={(e) => (tool === 'select' ? onPointerUp(e) : onDrawUp(e))}
         />
-        <DecoLayer decorations={[...(decorations || []), ...(draft ? [draft] : [])]} />
+        <DecoLayer
+          decorations={[...(decorations || []), ...(draft ? [draft] : [])]}
+          aspect={stageRatio || 1}
+        />
       </div>
 
       {/* Réglages de chaque zone */}
@@ -739,7 +753,7 @@ export default function ZoneEditor({
               />
               <span style={{ flex: '1 1 140px', fontSize: '0.88rem' }}>
                 {d.type === 'line'
-                  ? 'Ligne (main levée)'
+                  ? (d.points?.length > 2 ? 'Ligne (main levée)' : 'Droite')
                   : d.type === 'text'
                     ? `Texte : « ${d.text} »`
                     : d.type === 'symbol'
@@ -840,11 +854,11 @@ function hexToRgba(hex, alpha) {
 }
 
 // Rendu des annotations (décor du fond). Même géométrie que l'export (deco.js).
-function DecoLayer({ decorations }) {
+function DecoLayer({ decorations, aspect = 1 }) {
   return (
     <div className="deco-layer">
       {decorations.map((d, i) => {
-        const g = decoGeometry(d, (s) => SYMBOL_GLYPH[s] || '●')
+        const g = decoGeometry(d, (s) => SYMBOL_GLYPH[s] || '●', aspect)
         const key = d.id || `draft-${i}`
         if (g.kind === 'line') {
           return (
