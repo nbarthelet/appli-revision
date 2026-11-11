@@ -433,28 +433,21 @@ export default function ZoneEditor({
 
           if (g.shape === 'marker') {
             const glyph = SYMBOL_GLYPH[z.symbol] || '●'
-            const flexDir =
-              z.labelPos === 'left'
-                ? 'row-reverse'
-                : z.labelPos === 'top'
-                  ? 'column-reverse'
-                  : z.labelPos === 'bottom'
-                    ? 'column'
-                    : 'row'
+            const pos = z.labelPos || 'right'
             return (
               <div
                 key={z.id}
-                className="zone zone-marker"
+                className={'zone zone-marker mk-' + pos}
                 style={{
                   position: 'absolute',
                   left: `${g.cx * 100}%`,
                   top: `${g.cy * 100}%`,
                   transform: 'translate(-50%, -50%)',
+                  width: 44,
+                  height: 44,
                   display: 'flex',
-                  flexDirection: flexDir,
                   alignItems: 'center',
-                  gap: 5,
-                  padding: '6px',
+                  justifyContent: 'center',
                   border: 'none',
                   background: 'transparent',
                   cursor: 'move',
@@ -462,22 +455,13 @@ export default function ZoneEditor({
                 }}
                 onPointerDown={(e) => onPointerDown(e, z.id, 'move')}
               >
-                <span className="mk-sym" style={{ fontSize: z.size || 22, lineHeight: 1, color }}>
+                <span
+                  className="mk-sym"
+                  style={{ fontSize: z.size || 22, lineHeight: 1, color }}
+                >
                   {glyph}
                 </span>
-                <span
-                  className="mk-lbl"
-                  style={{
-                    fontSize: z.fontSize || 12,
-                    background: 'rgba(255,255,255,.9)',
-                    padding: '1px 6px',
-                    borderRadius: 4,
-                    whiteSpace: 'nowrap',
-                    pointerEvents: 'none',
-                  }}
-                >
-                  {z.label || '?'}
-                </span>
+                <span className="mk-lbl">{z.label || '?'}</span>
               </div>
             )
           }

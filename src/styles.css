@@ -440,6 +440,61 @@ table.grid th {
   border-radius: 4px;
 }
 
+/* Repère ponctuel : le symbole est centré sur le point, l'étiquette à côté.
+   La même structure est reprise dans l'export (export.js) pour que l'aperçu
+   et la page élève soient rigoureusement identiques. */
+.zone-editor .zone-marker {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+.zone-editor .zone-marker .mk-sym {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  line-height: 1;
+}
+.zone-editor .zone-marker .mk-lbl {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 1px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+.zone-editor .zone-marker.mk-right .mk-lbl {
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 3px;
+}
+.zone-editor .zone-marker.mk-left .mk-lbl {
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-right: 3px;
+}
+.zone-editor .zone-marker.mk-top .mk-lbl {
+  left: 50%;
+  bottom: 100%;
+  transform: translateX(-50%);
+  margin-bottom: 3px;
+}
+.zone-editor .zone-marker.mk-bottom .mk-lbl {
+  left: 50%;
+  top: 100%;
+  transform: translateX(-50%);
+  margin-top: 3px;
+}
+
 /* Annotations dÃ©coratives du fond de carte */
 .deco-layer {
   position: absolute;

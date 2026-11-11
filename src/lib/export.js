@@ -82,7 +82,6 @@ button{font-family:inherit;font-size:0.95rem}
 .zone{position:absolute;pointer-events:auto}
 .zone-marker{min-width:34px;min-height:34px;justify-content:center}
 .zone-marker .mk-sym{filter:drop-shadow(0 1px 2px rgba(0,0,0,.28))}
-.zone-marker .zplaced{position:static;transform:none;margin:0;font-size:inherit;background:#fff;padding:2px 7px;border-radius:8px;font-weight:700}
 .zone .zlabel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:.7rem;background:rgba(255,255,255,.9);padding:2px 8px;border-radius:10px;pointer-events:none;text-align:center;max-width:90%}
 .zone.droptarget{outline:3px solid var(--orange);outline-offset:3px;border-radius:12px}
 .drop-bank{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 6px;padding:12px;background:#fff;border:1px solid var(--line);border-radius:20px;min-height:44px}
@@ -97,7 +96,13 @@ button{font-family:inherit;font-size:0.95rem}
 .drop-head{margin-top:6px;font-size:.8rem;color:var(--ink-60);font-weight:700;text-transform:uppercase;letter-spacing:.05em}
 .zone .zplaced{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:#fff;border:1px solid var(--line);padding:3px 10px;border-radius:12px;font-size:.75rem;font-weight:700;pointer-events:none;box-shadow:0 1px 2px rgba(0,0,0,.12);max-width:90%}
 .zone.good .zplaced{background:var(--lime);border-color:var(--lime);color:var(--ink)}
-.zone.zone-marker .zplaced{position:static;left:auto;top:auto;transform:none;margin:0;font-size:inherit;background:#fff;border:1px solid var(--line);padding:2px 7px;border-radius:8px;font-weight:700;max-width:none;white-space:nowrap}
+.zone.zone-marker{width:44px;height:44px;display:flex;align-items:center;justify-content:center;padding:0}
+.zone.zone-marker .mk-sym{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);line-height:1}
+.zone.zone-marker .zplaced{position:absolute;background:#fff;border:1px solid var(--line);padding:2px 7px;border-radius:8px;font-weight:700;white-space:nowrap;pointer-events:none;max-width:none;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.zone.zone-marker.mk-right .zplaced{left:100%;top:50%;transform:translateY(-50%);margin-left:4px}
+.zone.zone-marker.mk-left .zplaced{right:100%;top:50%;transform:translateY(-50%);margin-right:4px}
+.zone.zone-marker.mk-top .zplaced{left:50%;bottom:100%;transform:translateX(-50%);margin-bottom:4px}
+.zone.zone-marker.mk-bottom .zplaced{left:50%;top:100%;transform:translateX(-50%);margin-top:4px}
 .zone.zone-marker .zplaced.good{background:var(--lime);border-color:var(--lime);color:var(--ink)}
 .zone.zone-marker .zplaced.bad{background:#ff9d9d;border-color:#ff9d9d;color:var(--ink)}
   /* Annotations décoratives du fond (non cliquables) */
@@ -287,18 +292,11 @@ function zonesHTML(zones, prefix) {
         const c = z.img[0]
         const glyph = SYMBOL_GLYPH[z.symbol] || '●'
         const size = z.size || 22
-        const fs = z.fontSize || 12
         const pos = z.labelPos || 'right'
-        const dir =
-          pos === 'left'
-            ? 'row-reverse'
-            : pos === 'top'
-              ? 'column-reverse'
-              : pos === 'bottom'
-                ? 'column'
-                : 'row'
         // NB : aucune étiquette visible ici — c'est la réponse que l'élève doit placer.
-        return `<div class="zone zone-marker" data-pf="${prefix}" data-zone="${i}"${dataLabel} style="left:${c.x * 100}%;top:${c.y * 100}%;transform:translate(-50%,-50%);display:flex;flex-direction:${dir};align-items:center;gap:6px;padding:8px;font-size:${fs}px">
+        // La boîte fait 44x44 px et le symbole est centré sur le point (comme dans
+        // l'éditeur) : l'aperçu et la page élève sont rigoureusement identiques.
+        return `<div class="zone zone-marker mk-${pos}" data-pf="${prefix}" data-zone="${i}"${dataLabel} style="left:${c.x * 100}%;top:${c.y * 100}%;transform:translate(-50%,-50%);width:44px;height:44px;display:flex;align-items:center;justify-content:center;padding:0">
           <span class="mk-sym" style="font-size:${size}px;line-height:1;color:${color}">${glyph}</span>
         </div>`
       }
