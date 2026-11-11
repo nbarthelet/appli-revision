@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   --main: #ff5b00;
   --main-dark: #d64b00;
   --soft: #ffe3cc;
@@ -273,7 +273,7 @@ table.grid th {
   box-shadow: 0 2px 8px -2px rgba(255, 91, 0, 0.25);
 }
 
-/* Grille de catégories de l'éditeur (2 colonnes) */
+/* Grille de catÃ©gories de l'Ã©diteur (2 colonnes) */
 .editor-tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -440,7 +440,7 @@ table.grid th {
   border-radius: 4px;
 }
 
-/* Annotations décoratives du fond de carte */
+/* Annotations dÃ©coratives du fond de carte */
 .deco-layer {
   position: absolute;
   inset: 0;
@@ -517,7 +517,7 @@ table.grid th {
   border-radius: 8px;
 }
 
-/* Barres de progression (vue élève) */
+/* Barres de progression (vue Ã©lÃ¨ve) */
 .progress-wrap {
   margin-top: 10px;
 }
@@ -543,3 +543,5 @@ table.grid th {
 .progress-fill.perfect {
   background: #3f7d2a;
 }
+
+/* test watcher */
