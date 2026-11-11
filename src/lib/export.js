@@ -3,6 +3,7 @@
 // adapté aux tablettes (interactions tactiles) et utilisable hors-ligne.
 
 import { SYMBOLS, SYMBOL_GLYPH, closureWords, normalizeKey } from './model.js'
+import { decoGeometry } from './deco.js'
 
 function esc(s) {
   return String(s ?? '')
@@ -99,6 +100,14 @@ button{font-family:inherit;font-size:0.95rem}
 .zone.zone-marker .zplaced{position:static;left:auto;top:auto;transform:none;margin:0;font-size:inherit;background:#fff;border:1px solid var(--line);padding:2px 7px;border-radius:8px;font-weight:700;max-width:none;white-space:nowrap}
 .zone.zone-marker .zplaced.good{background:var(--lime);border-color:var(--lime);color:var(--ink)}
 .zone.zone-marker .zplaced.bad{background:#ff9d9d;border-color:#ff9d9d;color:var(--ink)}
+  /* Annotations décoratives du fond (non cliquables) */
+  .deco-layer{position:absolute;inset:0;pointer-events:none;z-index:1}
+  .deco-group{position:absolute;inset:0}
+  .deco-seg{position:absolute;height:var(--w,3px);background:currentColor;transform-origin:0 50%;margin-top:calc(var(--w,3px) / -2);border-radius:2px}
+  .deco-text{position:absolute;transform:translate(7px,-50%);font-weight:600;text-shadow:0 1px 2px rgba(255,255,255,.9),0 0 4px rgba(255,255,255,.7);white-space:nowrap}
+  .deco-sym{position:absolute;transform:translate(-50%,-50%);line-height:1;filter:drop-shadow(0 1px 2px rgba(255,255,255,.9))}
+  .deco-zone{position:absolute;border:1px solid rgba(0,0,0,.25)}
+  .deco-hatch{position:absolute;border:1px solid var(--c,#dc2626);background-image:repeating-linear-gradient(45deg,var(--c,#dc2626) 0 2px,transparent 2px 7px)}
 .zone.bad .zplaced{background:#ff9d9d;border-color:#ff9d9d;color:var(--ink)}
 /* Frise */
 .tl-wrap{background:#fff;border:1px solid var(--line);border-radius:22px;padding:14px;position:relative;overflow:hidden}
@@ -328,6 +337,49 @@ function dropBankHTML(zones) {
   )
 }
 
+// Annotations décoratives du fond (lignes, textes, symboles, zones, hachures).
+// Elles sont sous les zones de réponse et ne sont pas des cibles de dépôt.
+function decorationsHTML(decos) {
+  if (!decos || !decos.length) return ''
+  const out = []
+  for (const d of decos) {
+    const g = decoGeometry(d, (s) => SYMBOL_GLYPH[s] || '●')
+    if (g.kind === 'line') {
+      const segs = g.segments
+        .map(
+          (s) =>
+            `<span class="deco-seg" style="left:${s.x1}%;top:${s.y1}%;width:${s.len}%;transform:rotate(${s.ang}deg);--w:${g.width}px"></span>`
+        )
+        .join('')
+      out.push(`<div class="deco-group" style="color:${g.color}">${segs}</div>`)
+    } else if (g.kind === 'text') {
+      out.push(
+        `<span class="deco-text" style="left:${g.x}%;top:${g.y}%;color:${g.color};font-size:${g.size}px;font-weight:${g.bold ? 800 : 600}">${esc(g.text)}</span>`
+      )
+    } else if (g.kind === 'symbol') {
+      out.push(
+        `<span class="deco-sym" style="left:${g.x}%;top:${g.y}%;color:${g.color};font-size:${g.size}px">${g.glyph}</span>`
+      )
+    } else if (g.shape === 'circle') {
+      const a = Math.round(g.opacity * 255)
+        .toString(16)
+        .padStart(2, '0')
+      out.push(
+        `<span class="deco-zone" style="left:${g.cx - g.r}%;top:${g.cy - g.r}%;width:${g.r * 2}%;height:${g.r * 2}%;background:${g.color}${a};border-color:${g.color}"></span>`
+      )
+    } else {
+      const a = Math.round(g.opacity * 255)
+        .toString(16)
+        .padStart(2, '0')
+      const bg = g.kind === 'zone' ? `background:${g.color}${a};border-color:${g.color};` : ''
+      out.push(
+        `<span class="deco-${g.kind}" style="left:${g.x}%;top:${g.y}%;width:${g.w}%;height:${g.h}%;--c:${g.color};${bg}"></span>`
+      )
+    }
+  }
+  return `<div class="deco-layer">${out.join('')}</div>`
+}
+
 function mapHTML(map, instr) {
   // Mode zones (étiquettes à poser) : la consigne par défaut ne convient pas.
   const consigne =
@@ -335,10 +387,12 @@ function mapHTML(map, instr) {
       ? "Glissez ou cliquez chaque étiquette sur le bon repère de la carte, puis vérifiez vos réponses."
       : instr
   const zones = zonesHTML(map.zones, 'map')
+  const decos = decorationsHTML(map.decorations)
   return `
 <div class="map-block" data-instr="${esc(consigne)}" data-mode="${esc(map.mode)}" data-center="${esc(JSON.stringify(map.center || [0, 0]))}" data-zoom="${map.zoom || 5}">
   <div class="map-stage">
     ${map.imageDataUrl ? `<img src="${map.imageDataUrl}" data-bg="1" />` : ''}
+    ${decos}
     ${zones}
     <div class="map-msg" style="position:absolute;bottom:8px;left:8px;background:rgba(255,255,255,.9);padding:4px 10px;border-radius:6px;font-size:.8rem"></div>
   </div>

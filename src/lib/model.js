@@ -2,6 +2,8 @@
 // Ce fichier décrit la structure d'un exercice ainsi que les fonctions
 // de normalisation (parsing) et quelques utilitaires partagés.
 
+import { normalizeDecoration } from './deco.js'
+
 export const EXERCISE_TYPES = {
   matching: 'Appariement',
   flashcards: 'Flashcards',
@@ -308,6 +310,7 @@ export function emptyMap() {
     markers: [],
     defaultSymbol: 'circle',
     zones: [],
+    decorations: [],
   }
 }
 
@@ -344,6 +347,7 @@ export function normalizeMap(m) {
     markers: [],
     defaultSymbol: normalizeSymbol(m?.defaultSymbol),
     zones: zones.length ? zones : migrated,
+    decorations: (m?.decorations || []).map(normalizeDecoration).filter((x) => x !== null),
   }
 }
 

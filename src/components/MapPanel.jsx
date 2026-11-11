@@ -56,6 +56,7 @@ export default function MapPanel({ ex, setEx }) {
   }
 
   const setZones = (zones) => patchMap({ zones })
+  const setDecorations = (decorations) => patchMap({ decorations })
 
   // Import d'un CSV de repères :
   //   nom;forme;x1;y1;x2;y2;categorie;symbole;taille;position_etiquette;police
@@ -224,6 +225,8 @@ export default function MapPanel({ ex, setEx }) {
         <ZoneEditor
           zones={map.zones}
           onChange={setZones}
+          decorations={map.decorations || []}
+          onDecorationsChange={setDecorations}
           imageUrl={map.imageDataUrl}
           height={Math.min(500, map.imageHeight || 400)}
           ratio={map.imageWidth && map.imageHeight ? map.imageWidth / map.imageHeight : null}

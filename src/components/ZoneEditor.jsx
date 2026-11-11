@@ -7,16 +7,22 @@ import {
   LABEL_POSITIONS,
   EMOJI_SYMBOLS,
 } from '../lib/model.js'
+import { DECO_TYPES, newDecoration, decoGeometry } from '../lib/deco.js'
 
 const HANDLE_SIZE = 12
 
 // Éditeur de zones réutilisable (frise + carte image).
 // Les coordonnées sont stockées en fractions (0-1) relatives à la scène affichée.
-// - Rectangle : 2 points (p1, p2), déplaçable et redimensionnable par poignées (coins + bords)
-// - Cercle : centre + rayon, déplaçable et redimensionnable par poignée sur la circonférence
+// - Rectangle : 2 points (p1, p2), déplaçable, redimensionnable par UNE poignée
+//   (coin bas-droit) qui étire en largeur et en hauteur.
+// - Cercle : centre + rayon, déplaçable et redimensionnable par poignée sur la circonférence.
+// - Annotations (decorations) : décor dessinées sur le fond (ligne, texte, symbole,
+//   zone colorée, hachure). Ce ne sont pas des réponses.
 export default function ZoneEditor({
   zones,
   onChange,
+  decorations = [],
+  onDecorationsChange,
   imageUrl,
   label = '',
   height = 420,
@@ -26,6 +32,22 @@ export default function ZoneEditor({
   const stageRef = useRef(null)
   const dragRef = useRef(null) // { zoneId, op, startX, startY, orig }
   const [openId, setOpenId] = useState(null) // zone dont les réglages sont déployés
+  // Outils d'annotation (dessin sur le fond de carte)
+  const [tool, setTool] = useState('select')
+  const [draft, setDraft] = useState(null)
+  const [decoOpts, setDecoOpts] = useState({ color: '#dc2626', size: 18, symbol: 'star' })
+  const drawRef = useRef(null)
+
+  const addDeco = (d) => {
+    if (onDecorationsChange) onDecorationsChange([...(decorations || []), d])
+  }
+  const patchDeco = (id, p) => {
+    if (onDecorationsChange)
+      onDecorationsChange((decorations || []).map((d) => (d.id === id ? { ...d, ...p } : d)))
+  }
+  const removeDeco = (id) => {
+    if (onDecorationsChange) onDecorationsChange((decorations || []).filter((d) => d.id !== id))
+  }
 
   const stagePx = () => stageRef.current?.getBoundingClientRect() || { left: 0, top: 0, width: 300, height: 300 }
   const toFrac = (clientX, clientY) => {
@@ -102,25 +124,11 @@ export default function ZoneEditor({
         x = Math.max(0, Math.min(1 - w, g.x + dx))
         y = Math.max(0, Math.min(1 - h, g.y + dy))
       } else {
-        if (d.op.includes('e')) w = g.w + dx
-        if (d.op.includes('s')) h = g.h + dy
-        if (d.op.includes('w')) {
-          w = g.w - dx
-          x = g.x + dx
-        }
-        if (d.op.includes('n')) {
-          h = g.h - dy
-          y = g.y + dy
-        }
+        // une seule poignée (coin bas-droit) : étire en largeur ET en hauteur,
+        // l'angle haut-gauche restant fixe.
         const min = 0.02
-        if (w < min) {
-          if (d.op.includes('w')) { x = g.x + g.w - min }
-          w = min
-        }
-        if (h < min) {
-          if (d.op.includes('n')) { y = g.y + g.h - min }
-          h = min
-        }
+        w = Math.max(min, Math.min(1 - x, g.w + dx))
+        h = Math.max(min, Math.min(1 - y, g.h + dy))
       }
       next = { shape: 'rect', x, y, w, h }
     }
@@ -129,6 +137,93 @@ export default function ZoneEditor({
 
   const onPointerUp = () => {
     dragRef.current = null
+  }
+
+  // ---------------- Outils de dessin sur le fond ----------------
+  const draftFrom = (type, points, opts) => {
+    if (type === 'line') return { type: 'line', points, color: opts.color, width: 3 }
+    const xs = points.map((p) => p.x)
+    const ys = points.map((p) => p.y)
+    const x = Math.min(...xs)
+    const y = Math.min(...ys)
+    return {
+      type,
+      shape: 'rect',
+      x,
+      y,
+      w: Math.max(0.004, Math.max(...xs) - x),
+      h: Math.max(0.004, Math.max(...ys) - y),
+      color: opts.color,
+      opacity: 0.25,
+    }
+  }
+
+  const onDrawDown = (e) => {
+    if (tool === 'select') {
+      dragRef.current = null
+      return
+    }
+    e.preventDefault()
+    e.stopPropagation()
+    const p = toFrac(e.clientX, e.clientY)
+    if (tool === 'text') {
+      // Pas de fenêtre système : le texte est créé et se modifie dans la liste.
+      addDeco(
+        newDecoration('text', {
+          text: 'Texte',
+          x: p.x,
+          y: p.y,
+          size: decoOpts.size,
+          color: decoOpts.color,
+        })
+      )
+      setTool('select')
+      return
+    }
+    if (tool === 'symbol') {
+      addDeco(
+        newDecoration('symbol', {
+          symbol: decoOpts.symbol,
+          x: p.x,
+          y: p.y,
+          size: decoOpts.size,
+          color: decoOpts.color,
+        })
+      )
+      setTool('select')
+      return
+    }
+    drawRef.current = { type: tool, points: [p] }
+    setDraft(draftFrom(tool, [p], decoOpts))
+  }
+
+  const onDrawMove = (e) => {
+    const d = drawRef.current
+    if (!d) return
+    const p = toFrac(e.clientX, e.clientY)
+    if (d.type === 'line') {
+      const last = d.points[d.points.length - 1]
+      if (Math.hypot(p.x - last.x, p.y - last.y) > 0.004) {
+        d.points = [...d.points, p]
+        setDraft(draftFrom(d.type, d.points, decoOpts))
+      }
+    } else {
+      d.points = [d.points[0], p]
+      setDraft(draftFrom(d.type, d.points, decoOpts))
+    }
+  }
+
+  const onDrawUp = () => {
+    const d = drawRef.current
+    drawRef.current = null
+    if (!d) return
+    setDraft(null)
+    if (d.type === 'line') {
+      if (d.points.length >= 2) addDeco({ ...newDecoration('line'), points: d.points, color: decoOpts.color, width: 3 })
+    } else {
+      const r = draftFrom(d.type, d.points, decoOpts)
+      if (r.w > 0.006 && r.h > 0.006) addDeco({ ...newDecoration(d.type), ...r })
+    }
   }
 
   const addRect = () =>
@@ -203,11 +298,93 @@ export default function ZoneEditor({
 
   return (
     <div className="zone-editor">
-      <div className="row" style={{ marginBottom: 8 }}>
+      <div className="row" style={{ marginBottom: 8, flexWrap: 'wrap' }}>
         <button className="btn small" onClick={addRect}>+ Rectangle</button>
         <button className="btn small" onClick={addCircle}>+ Cercle</button>
         <button className="btn small" onClick={addMarker}>+ Symbole</button>
+        {onDecorationsChange && (
+          <>
+            <span style={{ width: 12 }} />
+            <span className="hint" style={{ margin: 0 }}>Dessiner sur la carte :</span>
+            {[
+              ['select', '✋ Repères'],
+              ['line', '／ Ligne'],
+              ['text', 'T Texte'],
+              ['symbol', '✦ Symbole'],
+              ['zone', '▧ Zone'],
+              ['hatch', '▨ Hachure'],
+            ].map(([k, label]) => (
+              <button
+                key={k}
+                className={'btn small' + (tool === k ? '' : ' ghost')}
+                onClick={() => setTool(k)}
+                title={
+                  k === 'select'
+                    ? 'Déplacer et redimensionner les repères'
+                    : k === 'line'
+                      ? 'Dessiner une ligne à main levée (glisser sur la carte)'
+                      : k === 'text'
+                        ? 'Placer un texte (clic sur la carte)'
+                        : k === 'symbol'
+                          ? 'Placer un symbole (clic sur la carte)'
+                          : k === 'zone'
+                            ? 'Tracer une zone colorée (glisser)'
+                            : 'Tracer une zone hachurée (glisser)'
+                }
+              >
+                {label}
+              </button>
+            ))}
+          </>
+        )}
       </div>
+
+      {tool !== 'select' && onDecorationsChange && (
+        <div className="row" style={{ marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
+          <input
+            type="color"
+            value={/^#[0-9a-fA-F]{6}$/.test(decoOpts.color) ? decoOpts.color : '#dc2626'}
+            onChange={(e) => setDecoOpts((o) => ({ ...o, color: e.target.value }))}
+            title="Couleur de l'annotation"
+            style={{ width: 44, height: 32, border: '1px solid #e2e8f0', borderRadius: 6, padding: 2, cursor: 'pointer' }}
+          />
+          {tool !== 'zone' && tool !== 'hatch' && (
+            <label className="field" style={{ margin: 0 }}>
+              <span>Taille</span>
+              <input
+                type="number"
+                min={8}
+                max={96}
+                value={decoOpts.size}
+                onChange={(e) => setDecoOpts((o) => ({ ...o, size: Number(e.target.value) || 18 }))}
+                style={{ width: 70 }}
+              />
+            </label>
+          )}
+          {tool === 'symbol' && (
+            <select
+              value={decoOpts.symbol}
+              onChange={(e) => setDecoOpts((o) => ({ ...o, symbol: e.target.value }))}
+              title="Symbole"
+            >
+              {Object.entries(SYMBOLS).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v.glyph} {v.label}
+                </option>
+              ))}
+            </select>
+          )}
+          <span className="hint" style={{ margin: 0 }}>
+            {tool === 'line'
+              ? 'Glisse sur la carte pour dessiner la ligne.'
+              : tool === 'text'
+                ? 'Clique sur la carte pour placer le texte.'
+                : tool === 'symbol'
+                  ? 'Clique sur la carte pour placer le symbole.'
+                  : 'Glisse sur la carte pour tracer la zone.'}
+          </span>
+        </div>
+      )}
       <div
         ref={stageRef}
         className="map-stage-editor"
@@ -341,52 +518,40 @@ export default function ZoneEditor({
             border: boxStroke,
             background: fill,
           }
-          const handles = [
-            ['nw', -1, -1, 'nwse-resize'],
-            ['n', 0.5, -1, 'ns-resize'],
-            ['ne', 1, -1, 'nesw-resize'],
-            ['e', 1, 0.5, 'ew-resize'],
-            ['se', 1, 1, 'nwse-resize'],
-            ['s', 0.5, 1, 'ns-resize'],
-            ['sw', 0, 1, 'nesw-resize'],
-            ['w', 0, 0.5, 'ew-resize'],
-          ]
+          // Une seule poignée (coin bas-droit) : étire dans les deux dimensions.
           return (
             <div key={z.id} className="zone" style={{ ...style, position: 'absolute', cursor: 'move', zIndex: 2 }}
               onPointerDown={(e) => onPointerDown(e, z.id, 'move')}>
               <span className="zid">{z.label || '?'}</span>
-              {handles.map(([dir, hx, hy, cur]) => (
-                <div
-                  key={dir}
-                  className="zone-handle"
-                  data-dir={dir}
-                  style={{
-                    position: 'absolute',
-                    left: `${hx * 100}%`,
-                    top: `${hy * 100}%`,
-                    width: HANDLE_SIZE,
-                    height: HANDLE_SIZE,
-                    marginLeft: -HANDLE_SIZE / 2,
-                    marginTop: -HANDLE_SIZE / 2,
-                    background: '#fff',
-                    border: `2px solid ${color}`,
-                    borderRadius: hx === 0.5 || hy === 0.5 ? 3 : '50%',
-                    cursor: cur,
-                    zIndex: 3,
-                  }}
-                  onPointerDown={(e) => onPointerDown(e, z.id, dir)}
-                />
-              ))}
+              <div
+                className="zone-handle"
+                data-dir="se"
+                style={{
+                  position: 'absolute',
+                  right: -HANDLE_SIZE / 2,
+                  bottom: -HANDLE_SIZE / 2,
+                  width: HANDLE_SIZE,
+                  height: HANDLE_SIZE,
+                  background: '#fff',
+                  border: `2px solid ${color}`,
+                  borderRadius: 4,
+                  cursor: 'nwse-resize',
+                  zIndex: 3,
+                }}
+                title="Étirer (largeur et hauteur)"
+                onPointerDown={(e) => onPointerDown(e, z.id, 'se')}
+              />
             </div>
           )
         })}
         <div
-          style={{ position: 'absolute', inset: 0, background: 'transparent', zIndex: 1 }}
-          onPointerDown={() => { dragRef.current = null }}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerLeave={onPointerUp}
+          style={{ position: 'absolute', inset: 0, background: 'transparent', zIndex: tool === 'select' ? 1 : 5 }}
+          onPointerDown={onDrawDown}
+          onPointerMove={(e) => (tool === 'select' ? onPointerMove(e) : onDrawMove(e))}
+          onPointerUp={(e) => (tool === 'select' ? onPointerUp(e) : onDrawUp(e))}
+          onPointerLeave={(e) => (tool === 'select' ? onPointerUp(e) : onDrawUp(e))}
         />
+        <DecoLayer decorations={[...(decorations || []), ...(draft ? [draft] : [])]} />
       </div>
 
       {/* Réglages de chaque zone */}
@@ -554,8 +719,96 @@ export default function ZoneEditor({
           </div>
         )
       })}
-      {!zones.length && <p className="hint">Aucune zone. Ajoutez un rectangle, un cercle ou un symbole, puis tirez sur les poignées pour le redimensionner et le déplacer.</p>}
-      {zones.length > 0 && doublons.length > 0 && (
+      {onDecorationsChange && (decorations || []).length > 0 && (
+        <div className="expand" style={{ marginTop: 10 }}>
+          <div style={{ fontWeight: 600, marginBottom: 8 }}>
+            Annotations du fond ({decorations.length})
+          </div>
+          <p className="hint" style={{ marginTop: 0 }}>
+            Ces éléments sont décoratifs : ils apparaissent sur la carte mais ne sont pas des
+            réponses à placer.
+          </p>
+          {(decorations || []).map((d) => (
+            <div key={d.id} className="row" style={{ marginBottom: 6, flexWrap: 'wrap' }}>
+              <input
+                type="color"
+                value={/^#[0-9a-fA-F]{6}$/.test(d.color || '') ? d.color : '#dc2626'}
+                onChange={(e) => patchDeco(d.id, { color: e.target.value })}
+                title="Couleur"
+                style={{ width: 40, height: 30, border: '1px solid #e2e8f0', borderRadius: 6, padding: 2, cursor: 'pointer' }}
+              />
+              <span style={{ flex: '1 1 140px', fontSize: '0.88rem' }}>
+                {d.type === 'line'
+                  ? 'Ligne (main levée)'
+                  : d.type === 'text'
+                    ? `Texte : « ${d.text} »`
+                    : d.type === 'symbol'
+                      ? `Symbole ${SYMBOLS[d.symbol]?.glyph || ''} ${SYMBOLS[d.symbol]?.label || ''}`
+                      : d.type === 'hatch'
+                        ? 'Zone hachurée'
+                        : 'Zone colorée'}
+              </span>
+              {d.type === 'text' && (
+                <input
+                  type="text"
+                  value={d.text}
+                  onChange={(e) => patchDeco(d.id, { text: e.target.value })}
+                  style={{ flex: '1 1 160px', minWidth: 120 }}
+                />
+              )}
+              {d.type === 'text' && (
+                <input
+                  type="number"
+                  min={8}
+                  max={72}
+                  value={d.size}
+                  onChange={(e) => patchDeco(d.id, { size: Number(e.target.value) || 12 })}
+                  title="Taille du texte (px)"
+                  style={{ width: 68 }}
+                />
+              )}
+              {d.type === 'symbol' && (
+                <>
+                  <select
+                    value={d.symbol}
+                    onChange={(e) => patchDeco(d.id, { symbol: e.target.value })}
+                    title="Symbole"
+                  >
+                    {Object.entries(SYMBOLS).map(([k, v]) => (
+                      <option key={k} value={k}>
+                        {v.glyph} {v.label}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    min={8}
+                    max={96}
+                    value={d.size}
+                    onChange={(e) => patchDeco(d.id, { size: Number(e.target.value) || 26 })}
+                    title="Taille (px)"
+                    style={{ width: 68 }}
+                  />
+                </>
+              )}
+              {d.type === 'line' && (
+                <input
+                  type="number"
+                  min={1}
+                  max={14}
+                  value={d.width}
+                  onChange={(e) => patchDeco(d.id, { width: Number(e.target.value) || 3 })}
+                  title="Épaisseur (px)"
+                  style={{ width: 68 }}
+                />
+              )}
+              <button className="btn danger small" onClick={() => removeDeco(d.id)}>Suppr.</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!zones.length && <p className="hint">Aucune zone. Ajoutez un rectangle, un cercle ou un symbole, puis tirez sur les poignées pour le redimensionner et le déplacer.</p>}      {zones.length > 0 && doublons.length > 0 && (
         <p
           style={{
             background: '#fff3cd',
@@ -584,4 +837,93 @@ function hexToRgba(hex, alpha) {
   const gr = (num >> 8) & 255
   const b = num & 255
   return `rgba(${r},${gr},${b},${alpha})`
+}
+
+// Rendu des annotations (décor du fond). Même géométrie que l'export (deco.js).
+function DecoLayer({ decorations }) {
+  return (
+    <div className="deco-layer">
+      {decorations.map((d, i) => {
+        const g = decoGeometry(d, (s) => SYMBOL_GLYPH[s] || '●')
+        const key = d.id || `draft-${i}`
+        if (g.kind === 'line') {
+          return (
+            <div key={key} style={{ position: 'absolute', inset: 0, color: g.color }}>
+              {g.segments.map((s, j) => (
+                <span
+                  key={j}
+                  className="deco-seg"
+                  style={{
+                    left: `${s.x1}%`,
+                    top: `${s.y1}%`,
+                    width: `${s.len}%`,
+                    transform: `rotate(${s.ang}deg)`,
+                    '--w': `${g.width}px`,
+                  }}
+                />
+              ))}
+            </div>
+          )
+        }
+        if (g.kind === 'text') {
+          return (
+            <span
+              key={key}
+              className="deco-text"
+              style={{
+                left: `${g.x}%`,
+                top: `${g.y}%`,
+                color: g.color,
+                fontSize: `${g.size}px`,
+                fontWeight: g.bold ? 800 : 600,
+              }}
+            >
+              {g.text}
+            </span>
+          )
+        }
+        if (g.kind === 'symbol') {
+          return (
+            <span
+              key={key}
+              className="deco-sym"
+              style={{ left: `${g.x}%`, top: `${g.y}%`, color: g.color, fontSize: `${g.size}px` }}
+            >
+              {g.glyph}
+            </span>
+          )
+        }
+        if (g.shape === 'circle') {
+          return (
+            <span
+              key={key}
+              className="deco-zone"
+              style={{
+                left: `${g.cx - g.r}%`,
+                top: `${g.cy - g.r}%`,
+                width: `${g.r * 2}%`,
+                height: `${g.r * 2}%`,
+                background: hexToRgba(g.color, g.opacity),
+                borderColor: g.color,
+              }}
+            />
+          )
+        }
+        return (
+          <span
+            key={key}
+            className={'deco-' + g.kind}
+            style={{
+              left: `${g.x}%`,
+              top: `${g.y}%`,
+              width: `${g.w}%`,
+              height: `${g.h}%`,
+              '--c': g.color,
+              ...(g.kind === 'zone' ? { background: hexToRgba(g.color, g.opacity), borderColor: g.color } : {}),
+            }}
+          />
+        )
+      })}
+    </div>
+  )
 }

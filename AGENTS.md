@@ -40,6 +40,9 @@ L'élève reçoit un fichier HTML autonome (pas de dépendances, fonctionne hors
 - Flashcards avec flip 3D
 - Repères de carte : cercle, rectangle ou symbole (banque de ~65 glyphes, avec taille,
   position et taille de police de l'étiquette). Import CSV de repères géoréférencés.
+- Annotations du fond (décor) : ligne à main levée, texte, symbole, zone colorée,
+  zone hachurée. Ce ne sont pas des réponses : elles ne sont pas cliquables dans la
+  page élève (`pointer-events: none`, sous les repères).
 - Zones drag & drop pour frise/carte image
 - Sauvegarde automatique différée (600 ms) dans le navigateur + alerte si le quota est atteint
 - Téléchargement en Blob (les URL `data:` cassent au-delà de ~2 Mo)
@@ -53,6 +56,13 @@ L'élève reçoit un fichier HTML autonome (pas de dépendances, fonctionne hors
 
 ## Règles techniques
 - `radiusPct` est une **fraction** de la largeur de l'image (0-1), pas un pourcentage.
+- Un rectangle se redimensionne par **une seule poignée** (coin bas-droit) qui étire en
+  largeur et en hauteur, l'angle haut-gauche restant fixe.
+- Les annotations (`src/lib/deco.js`) sont décoratives : elles ne doivent jamais
+  devenir des cibles de dépôt. La géométrie est calculée par `decoGeometry()`,
+  utilisée par l'éditeur ET par l'export, pour éviter toute divergence.
+- `newDecoration(type, patch)` : le `patch` prime sur les valeurs par défaut
+  (l'identifiant reste celui de la fonction).
 - Les emoji (📍 🧭 🌊…) ne se recolorent pas : utiliser les formes géométriques ou
   la famille « traits fins » pour un symbole à la couleur de la carte.
 - L'étiquette attendue n'est jamais visible dans la page élève : elle est placée
