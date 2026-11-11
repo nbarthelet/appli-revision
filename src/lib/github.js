@@ -7,22 +7,26 @@ const API = 'https://api.github.com'
 const LS_PAT = 'hggsp-github-token'
 const LS_REPO = 'hggsp-github-repo'
 const LS_BRANCH = 'hggsp-github-branch'
+const LS_OWNER = 'hggsp-github-owner'
 
 export function getSettings() {
   return {
     token: localStorage.getItem(LS_PAT) || '',
     repo: localStorage.getItem(LS_REPO) || '',
     branch: localStorage.getItem(LS_BRANCH) || 'main',
+    owner: localStorage.getItem(LS_OWNER) || '',
   }
 }
 
-export function saveSettings({ token, repo, branch }) {
+export function saveSettings({ token, repo, branch, owner }) {
   if (token) localStorage.setItem(LS_PAT, token.trim())
   else localStorage.removeItem(LS_PAT)
   if (repo) localStorage.setItem(LS_REPO, repo.trim())
   else localStorage.removeItem(LS_REPO)
   if (branch) localStorage.setItem(LS_BRANCH, branch.trim())
   else localStorage.setItem(LS_BRANCH, 'main')
+  if (owner) localStorage.setItem(LS_OWNER, owner.trim())
+  else localStorage.removeItem(LS_OWNER)
 }
 
 async function gh(url, token, options = {}) {
@@ -49,11 +53,15 @@ async function gh(url, token, options = {}) {
   return res.json()
 }
 
+function encodePath(path) {
+  return path.split('/').map((s) => encodeURIComponent(s)).join('/')
+}
+
 // Retourne le SHA actuel d'un fichier (ou null s'il n'existe pas).
 async function getFileSha(owner, repo, branch, path, token) {
   try {
     const data = await gh(
-      `${API}/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch)}`,
+      `${API}/repos/${owner}/${repo}/contents/${encodePath(path)}?ref=${encodeURIComponent(branch)}`,
       token,
     )
     return data.sha
@@ -73,7 +81,7 @@ export async function publishFile({ settings, owner, repo, branch, path, content
     branch,
   }
   if (sha) body.sha = sha
-  await gh(`${API}/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`, token, {
+  await gh(`${API}/repos/${owner}/${repo}/contents/${encodePath(path)}`, token, {
     method: 'PUT',
     body: JSON.stringify(body),
   })

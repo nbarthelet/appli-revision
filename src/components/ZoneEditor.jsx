@@ -1,5 +1,12 @@
-import { useRef } from 'react'
-import { zoneGeometry } from '../lib/model.js'
+import { useRef, useState } from 'react'
+import {
+  zoneGeometry,
+  SYMBOLS,
+  SYMBOL_GLYPH,
+  SYMBOL_GROUPS,
+  LABEL_POSITIONS,
+  EMOJI_SYMBOLS,
+} from '../lib/model.js'
 
 const HANDLE_SIZE = 12
 
@@ -18,6 +25,7 @@ export default function ZoneEditor({
   const stageRatio = ratio && ratio > 0 ? ratio : null
   const stageRef = useRef(null)
   const dragRef = useRef(null) // { zoneId, op, startX, startY, orig }
+  const [openId, setOpenId] = useState(null) // zone dont les réglages sont déployés
 
   const stagePx = () => stageRef.current?.getBoundingClientRect() || { left: 0, top: 0, width: 300, height: 300 }
   const toFrac = (clientX, clientY) => {
@@ -32,6 +40,12 @@ export default function ZoneEditor({
     onChange(
       zones.map((z) => {
         if (z.id !== id) return z
+        if (z.shape === 'marker') {
+          return {
+            ...z,
+            img: [{ x: Math.max(0, Math.min(1, geo.cx)), y: Math.max(0, Math.min(1, geo.cy)) }],
+          }
+        }
         if (z.shape === 'circle') {
           return {
             ...z,
@@ -73,11 +87,11 @@ export default function ZoneEditor({
     const g = d.orig
     let next
 
-    if (g.shape === 'circle') {
+    if (g.shape === 'circle' || g.shape === 'marker') {
       const cx = g.cx + dx
       const cy = g.cy + dy
-      if (d.op === 'move') {
-        next = { shape: 'circle', cx, cy, r: g.r }
+      if (d.op === 'move' || g.shape === 'marker') {
+        next = { shape: g.shape, cx, cy, r: g.r }
       } else {
         // resize : garde le centre, ajuste le rayon
         next = { shape: 'circle', cx: g.cx, cy: g.cy, r: Math.max(0.01, g.r + dx) }
@@ -121,19 +135,78 @@ export default function ZoneEditor({
     onChange([...zones, newZoneLocal('rect')])
   const addCircle = () =>
     onChange([...zones, newZoneLocal('circle')])
+  const addMarker = () =>
+    onChange([...zones, newZoneLocal('marker')])
   const newZoneLocal = (shape) => {
+    const id = 'z-' + Math.random().toString(36).slice(2, 9)
     if (shape === 'circle')
-      return { id: 'z-' + Math.random().toString(36).slice(2, 9), label: '', color: '#2563eb', opacity: 0.3, shape: 'circle', img: [{ x: 0.5, y: 0.5 }], radiusPct: 0.1, geo: [] }
-    return { id: 'z-' + Math.random().toString(36).slice(2, 9), label: '', color: '#2563eb', opacity: 0.3, shape: 'rect', img: [{ x: 0.3, y: 0.3 }, { x: 0.6, y: 0.55 }], geo: [] }
+      return { id, label: '', color: '#2563eb', opacity: 0.3, shape: 'circle', img: [{ x: 0.5, y: 0.5 }], radiusPct: 0.1, geo: [] }
+    if (shape === 'marker')
+      return {
+        id, label: '', color: '#2563eb', opacity: 0.3, shape: 'marker', img: [{ x: 0.5, y: 0.5 }],
+        geo: [], symbol: 'pin', size: 22, fontSize: 12, labelPos: 'right',
+      }
+    return { id, label: '', color: '#2563eb', opacity: 0.3, shape: 'rect', img: [{ x: 0.3, y: 0.3 }, { x: 0.6, y: 0.55 }], geo: [] }
   }
   const removeZone = (id) => onChange(zones.filter((z) => z.id !== id))
   const setZone = (id, p) => onChange(zones.map((z) => (z.id === id ? { ...z, ...p } : z)))
+
+  // Étiquettes en double : la banque d'étiquettes de l'élève est dédoublonnée,
+  // donc un doublon rend l'exercice impossible à finir.
+  const doublons = (() => {
+    const seen = new Map()
+    zones.forEach((z) => {
+      const l = (z.label || '').trim()
+      if (!l) return
+      seen.set(l, (seen.get(l) || 0) + 1)
+    })
+    return [...seen.entries()].filter(([, n]) => n > 1).map(([l]) => l)
+  })()
+
+  // Changement de forme : on conserve le centre (et la taille pour les zones).
+  const changeShape = (id, shape) =>
+    onChange(
+      zones.map((z) => {
+        if (z.id !== id) return z
+        const g = zoneGeometry(z)
+        if (!g) return z
+        const cx = g.shape === 'rect' ? g.x + g.w / 2 : g.cx
+        const cy = g.shape === 'rect' ? g.y + g.h / 2 : g.cy
+        if (shape === 'marker') {
+          return {
+            ...z,
+            shape: 'marker',
+            img: [{ x: cx, y: cy }],
+            radiusPct: 0,
+            symbol: z.symbol || 'pin',
+            size: z.size || 22,
+            fontSize: z.fontSize || 12,
+            labelPos: z.labelPos || 'right',
+          }
+        }
+        if (shape === 'circle') {
+          const r = g.shape === 'rect' ? Math.max(0.02, Math.hypot(g.w, g.h) / 2) : z.radiusPct || 0.05
+          return { ...z, shape: 'circle', img: [{ x: cx, y: cy }], radiusPct: r }
+        }
+        const w = g.shape === 'rect' ? g.w : 0.12
+        const h = g.shape === 'rect' ? g.h : 0.08
+        return {
+          ...z,
+          shape: 'rect',
+          img: [
+            { x: cx, y: cy },
+            { x: Math.min(0.99, cx + w), y: Math.min(0.99, cy + h) },
+          ],
+        }
+      })
+    )
 
   return (
     <div className="zone-editor">
       <div className="row" style={{ marginBottom: 8 }}>
         <button className="btn small" onClick={addRect}>+ Rectangle</button>
         <button className="btn small" onClick={addCircle}>+ Cercle</button>
+        <button className="btn small" onClick={addMarker}>+ Symbole</button>
       </div>
       <div
         ref={stageRef}
@@ -169,6 +242,57 @@ export default function ZoneEditor({
           const opacity = g.opacity ?? 0.3
           const boxStroke = '2px solid ' + color
           const fill = hexToRgba(color, opacity)
+
+          if (g.shape === 'marker') {
+            const glyph = SYMBOL_GLYPH[z.symbol] || '●'
+            const flexDir =
+              z.labelPos === 'left'
+                ? 'row-reverse'
+                : z.labelPos === 'top'
+                  ? 'column-reverse'
+                  : z.labelPos === 'bottom'
+                    ? 'column'
+                    : 'row'
+            return (
+              <div
+                key={z.id}
+                className="zone zone-marker"
+                style={{
+                  position: 'absolute',
+                  left: `${g.cx * 100}%`,
+                  top: `${g.cy * 100}%`,
+                  transform: 'translate(-50%, -50%)',
+                  display: 'flex',
+                  flexDirection: flexDir,
+                  alignItems: 'center',
+                  gap: 5,
+                  padding: '6px',
+                  border: 'none',
+                  background: 'transparent',
+                  cursor: 'move',
+                  zIndex: 2,
+                }}
+                onPointerDown={(e) => onPointerDown(e, z.id, 'move')}
+              >
+                <span className="mk-sym" style={{ fontSize: z.size || 22, lineHeight: 1, color }}>
+                  {glyph}
+                </span>
+                <span
+                  className="mk-lbl"
+                  style={{
+                    fontSize: z.fontSize || 12,
+                    background: 'rgba(255,255,255,.9)',
+                    padding: '1px 6px',
+                    borderRadius: 4,
+                    whiteSpace: 'nowrap',
+                    pointerEvents: 'none',
+                  }}
+                >
+                  {z.label || '?'}
+                </span>
+              </div>
+            )
+          }
 
           if (g.shape === 'circle') {
             const style = {
@@ -268,18 +392,26 @@ export default function ZoneEditor({
       {/* Réglages de chaque zone */}
       {zones.map((z) => {
         const g = zoneGeometry(z)
-        const shapeLabel = z.shape === 'circle'
-          ? `Cercle (centre ${Math.round(g?.cx * 100)}%, ${Math.round(g?.cy * 100)}%, rayon ${Math.round((g?.r || 0) * 100)}%)`
-          : `Rectangle (${Math.round(g?.x * 100)}%, ${Math.round(g?.y * 100)}% → ${Math.round((g?.x + g?.w) * 100)}%, ${Math.round((g?.y + g?.h) * 100)}%)`
+        const shapeLabel = !g
+          ? '—'
+          : z.shape === 'marker'
+            ? `Symbole ${SYMBOLS[z.symbol]?.label || z.symbol} (${Math.round(g.cx * 100)}%, ${Math.round(g.cy * 100)}%)`
+            : z.shape === 'circle'
+              ? `Cercle (centre ${Math.round(g.cx * 100)}%, ${Math.round(g.cy * 100)}%, rayon ${Math.round((g.r || 0) * 100)}%)`
+              : `Rectangle (${Math.round(g.x * 100)}%, ${Math.round(g.y * 100)}% → ${Math.round((g.x + g.w) * 100)}%, ${Math.round((g.y + g.h) * 100)}%)`
         return (
-          <div key={z.id} className="expand" style={{ marginTop: 8 }}>
-            <div className="row" style={{ marginBottom: 8 }}>
+          <div key={z.id} className="expand zone-set">
+            <div className="row" style={{ marginBottom: 8, flexWrap: 'wrap' }}>
+              <span
+                className="zone-swatch"
+                style={{ background: z.color || '#2563eb', width: 16, height: 16, borderRadius: 4, flex: '0 0 auto' }}
+              />
               <input
                 type="text"
                 placeholder="Étiquette attendue (réponse)"
                 value={z.label}
                 onChange={(e) => setZone(z.id, { label: e.target.value })}
-                style={{ flex: '2' }}
+                style={{ flex: '2 1 160px', minWidth: 120 }}
               />
               <input
                 type="color"
@@ -300,8 +432,121 @@ export default function ZoneEditor({
                 title="Transparence (%)"
                 style={{ width: 70 }}
               />
+              <select
+                value={z.shape}
+                onChange={(e) => changeShape(z.id, e.target.value)}
+                title="Forme du repère"
+                style={{ width: 130 }}
+              >
+                <option value="circle">Cercle (zone)</option>
+                <option value="rect">Rectangle (zone)</option>
+                <option value="marker">Symbole (repère)</option>
+              </select>
+              <button
+                className="btn small"
+                onClick={() => setOpenId(openId === z.id ? null : z.id)}
+                title="Réglages détaillés"
+              >
+                {openId === z.id ? '▲' : '▼'}
+              </button>
               <button className="btn danger small" onClick={() => removeZone(z.id)}>Suppr.</button>
             </div>
+
+            {openId === z.id && (
+              <>
+                {z.shape === 'marker' && (
+                  <>
+                    <div className="sym-bank">
+                      {SYMBOL_GROUPS.map((grp) => (
+                        <div key={grp.name} className="sym-group">
+                          <div className="sym-title">{grp.name}</div>
+                          <div className="sym-grid">
+                            {grp.keys.map((k) => (
+                              <button
+                                key={k}
+                                type="button"
+                                title={
+                                  SYMBOLS[k]?.label + (EMOJI_SYMBOLS.has(k) ? ' (couleur fixe)' : '')
+                                }
+                                className={'sym-btn' + ((z.symbol || 'pin') === k ? ' active' : '')}
+                                onClick={() => setZone(z.id, { symbol: k })}
+                              >
+                                {SYMBOLS[k]?.glyph || k}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                      <p className="hint" style={{ marginTop: 8, marginBottom: 0 }}>
+                        Les emoji (📍 🧭 🌊…) gardent leur couleur d'origine : pour un symbole
+                        coloré à l'identique de la carte, utilise les formes géométriques ou la
+                        famille « traits fins ».
+                      </p>
+                    </div>
+
+                    <div className="row" style={{ marginBottom: 8, flexWrap: 'wrap' }}>
+                      <label className="field" style={{ margin: 0 }}>
+                        <span>Taille</span>
+                        <input
+                          type="number"
+                          min={8}
+                          max={72}
+                          value={z.size || 22}
+                          onChange={(e) => setZone(z.id, { size: Number(e.target.value) || 22 })}
+                          style={{ width: 70 }}
+                        />
+                      </label>
+                      <label className="field" style={{ margin: 0 }}>
+                        <span>Étiquette</span>
+                        <select
+                          value={z.labelPos || 'right'}
+                          onChange={(e) => setZone(z.id, { labelPos: e.target.value })}
+                        >
+                          {Object.entries(LABEL_POSITIONS).map(([k, v]) => (
+                            <option key={k} value={k}>
+                              {v}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="field" style={{ margin: 0 }}>
+                        <span>Police (px)</span>
+                        <input
+                          type="number"
+                          min={7}
+                          max={28}
+                          value={z.fontSize || 12}
+                          onChange={(e) => setZone(z.id, { fontSize: Number(e.target.value) || 12 })}
+                          style={{ width: 70 }}
+                        />
+                      </label>
+                    </div>
+                  </>
+                )}
+
+                {z.shape === 'circle' && (
+                  <div className="row" style={{ marginBottom: 8 }}>
+                    <label className="field" style={{ margin: 0 }}>
+                      <span>Rayon (% de la largeur)</span>
+                      <input
+                        type="number"
+                        min={0.2}
+                        max={40}
+                        step={0.5}
+                        value={Math.round((z.radiusPct || 0) * 1000) / 10}
+                        onChange={(e) =>
+                          setZone(z.id, {
+                            radiusPct: Math.max(0.002, (Number(e.target.value) || 2) / 100),
+                          })
+                        }
+                        style={{ width: 90 }}
+                      />
+                    </label>
+                  </div>
+                )}
+              </>
+            )}
+
             <div className="row">
               <span className="hint" style={{ flex: '1' }}>{shapeLabel}</span>
               <span className="hint">Opacité : {Math.round((z.opacity ?? 0.3) * 100)}%</span>
@@ -309,7 +554,23 @@ export default function ZoneEditor({
           </div>
         )
       })}
-      {!zones.length && <p className="hint">Aucune zone. Ajoutez un rectangle ou un cercle, puis tirez sur les poignées pour le redimensionner et le déplacer.</p>}
+      {!zones.length && <p className="hint">Aucune zone. Ajoutez un rectangle, un cercle ou un symbole, puis tirez sur les poignées pour le redimensionner et le déplacer.</p>}
+      {zones.length > 0 && doublons.length > 0 && (
+        <p
+          style={{
+            background: '#fff3cd',
+            border: '1px solid #ffd97a',
+            color: '#7a5200',
+            padding: '8px 12px',
+            borderRadius: 10,
+            fontSize: '0.85rem',
+            marginTop: 10,
+          }}
+        >
+          Étiquette utilisée plusieurs fois : {doublons.join(', ')}. L’élève ne peut poser qu’une
+          étiquette de ce nom — renomme ou fusionne ces repères.
+        </p>
+      )}
     </div>
   )
 }

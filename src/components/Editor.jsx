@@ -7,6 +7,7 @@ import MapPanel from './MapPanel.jsx'
 import TimelinePanel from './TimelinePanel.jsx'
 import ClozePanel from './ClozePanel.jsx'
 import QcmPanel from './QcmPanel.jsx'
+import ObjectifsPanel from './ObjectifsPanel.jsx'
 
 const SECTIONS = [
   { id: 'general', label: 'Général', emoji: '⚙️' },
@@ -17,6 +18,7 @@ const SECTIONS = [
   { id: 'reperage', label: 'Repérage', emoji: '📍' },
   { id: 'frise', label: 'Frise', emoji: '📅' },
   { id: 'trous', label: 'Texte à trous', emoji: '✏️' },
+  { id: 'objectifs', label: 'Fiche objectifs', emoji: '📋' },
 ]
 
 export default function Editor({ ex, patch, setEx }) {
@@ -31,6 +33,7 @@ export default function Editor({ ex, patch, setEx }) {
     reperage: (ex.maps || []).reduce((n, m) => n + (m.zones || []).length, 0),
     frise: (ex.timelines || []).reduce((n, t) => n + (t.zones || []).length, 0),
     trous: (ex.clozes || []).reduce((n, c) => n + closureWords(c.text || '').length, 0),
+    objectifs: (ex.objectifs?.reperes?.length || 0) + (ex.objectifs?.explications?.length || 0) + Object.keys(ex.objectifs?.vocabulaire || {}).length,
   }
 
   return (
@@ -70,6 +73,7 @@ export default function Editor({ ex, patch, setEx }) {
       {section === 'reperage' && <MapPanel ex={ex} setEx={setEx} />}
       {section === 'frise' && <TimelinePanel ex={ex} setEx={setEx} />}
       {section === 'trous' && <ClozePanel ex={ex} setEx={setEx} />}
+      {section === 'objectifs' && <ObjectifsPanel ex={ex} setEx={setEx} />}
     </div>
   )
 }

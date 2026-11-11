@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { slugify } from '../lib/model.js'
 import { getSettings, saveSettings, testConnection, publishFile } from '../lib/github.js'
-import { buildExerciseHtml } from '../lib/export.js'
+import { buildExerciseHtml, buildObjectifsHtml } from '../lib/export.js'
 
 export default function PublishPanel({ ex }) {
   const [settings, setSettings] = useState(getSettings)
-  const [liveOwner, setLiveOwner] = useState('')
+  const [liveOwner, setLiveOwner] = useState(() => getSettings().owner || '')
   const [folder, setFolder] = useState('')
   const [slug, setSlug] = useState('revision')
   const [status, setStatus] = useState('')
@@ -21,6 +21,28 @@ export default function PublishPanel({ ex }) {
       return ''
     }
   }, [ex])
+
+  const objectifsHtml = useMemo(() => {
+    try {
+      return buildObjectifsHtml(ex.objectifs)
+    } catch (e) {
+      console.error(e)
+      return ''
+    }
+  }, [ex.objectifs])
+
+  const downloadObjectifs = () => {
+    if (!objectifsHtml) return
+    const blob = new Blob([objectifsHtml], { type: 'text/html;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${(ex.objectifs?.titre || 'fiche-objectifs').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}.html`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
 
   useEffect(() => {
     setSlug(slugify(ex.title || 'revision'))
@@ -53,7 +75,7 @@ export default function PublishPanel({ ex }) {
   }
 
   const onSave = () => {
-    saveSettings({ ...settings })
+    saveSettings({ ...settings, owner: liveOwner })
     setStatus('Paramètres enregistrés dans ce navigateur.')
   }
 
@@ -214,6 +236,60 @@ export default function PublishPanel({ ex }) {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Fiche objectifs */}
+      <div className="card">
+        <h2>Fiche objectifs (PDF prof)</h2>
+        <p className="hint">
+          Génère la fiche A4 paysage (Repères / Vocabulaire / Explications) à partir de l'onglet
+          <strong>Fiche objectifs</strong> de l'éditeur.
+        </p>
+        <div className="row" style={{ marginTop: 12, flexWrap: 'wrap' }}>
+          <button
+            className="btn"
+            disabled={!objectifsHtml}
+            onClick={() => {
+              const toolbar = `<div class="no-print" style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 16px;background:#f0f0f0;font-family:sans-serif;font-size:14px;border-bottom:1px solid #ddd;">
+  <span>📄 Fiche objectifs — A4 paysage</span>
+  <button onclick="window.print()" style="padding:8px 16px;background:#FF5B00;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:14px;">🖨️ Imprimer / Enregistrer en PDF</button>
+</div>`
+              // objectifsHtml est déjà un document autonome (CSS + @page A4 paysage inclus).
+              // On injecte juste une barre d'outils non imprimée après <body>.
+              const doc = objectifsHtml.replace(/<body>/i, '<body>' + toolbar)
+              const w = window.open('', '_blank')
+              if (!w) {
+                alert('Popup bloquée : autorisez les popups pour exporter le PDF.')
+                return
+              }
+              w.document.write(doc)
+              w.document.close()
+            }}
+          >
+            🖨️ Exporter en PDF
+          </button>
+          <button
+            className="btn ghost"
+            disabled={!objectifsHtml}
+            onClick={downloadObjectifs}
+          >
+            📥 Télécharger HTML
+          </button>
+          <button
+            className="btn ghost"
+            disabled={!objectifsHtml}
+            onClick={() => {
+              const w = window.open('', '_blank')
+              w.document.write(objectifsHtml)
+              w.document.close()
+            }}
+          >
+            👁️ Aperçu
+          </button>
+        </div>
+        <div className="hint" style={{ marginTop: 8 }}>
+          💡 L'aperçu s'ouvre en A4 paysage. Utilisez <strong>Ctrl+P</strong> (ou Cmd+P) puis "Enregistrer en PDF".
+        </div>
       </div>
     </div>
   )

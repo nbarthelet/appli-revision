@@ -2,7 +2,7 @@
 // Produit un fichier unique, sans dépendance externe (CSS + JS embarqués),
 // adapté aux tablettes (interactions tactiles) et utilisable hors-ligne.
 
-import { SYMBOLS, closureWords, normalizeKey } from './model.js'
+import { SYMBOLS, SYMBOL_GLYPH, closureWords, normalizeKey } from './model.js'
 
 function esc(s) {
   return String(s ?? '')
@@ -77,15 +77,11 @@ button{font-family:inherit;font-size:0.95rem}
 /* Carte (image + OSM) */
 .map-stage{position:relative;background:#fff;border:1px solid var(--line);border-radius:22px;overflow:hidden;touch-action:none;user-select:none}
 .map-stage img{display:block;width:100%;height:auto;pointer-events:none}
-.map-mark{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;cursor:pointer;line-height:1}
-.map-mark .dot{width:22px;height:22px;border-radius:50%;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.25)}
-.map-mark.pending .dot{background:#bbb}
-.map-mark.placed .dot{background:var(--orange)}
-.map-mark.ok .dot{background:var(--lime)}
-.map-mark.err .dot{background:#ff9d9d}
-.map-mark .lbl{font-size:.7rem;background:#fff;padding:3px 8px;border-radius:10px;box-shadow:0 1px 2px rgba(0,0,0,.15);margin-top:2px;max-width:120px;text-align:center;font-weight:600}
 .map-legend{margin-top:8px;font-size:.85rem;color:var(--ink-60)}
 .zone{position:absolute;pointer-events:auto}
+.zone-marker{min-width:34px;min-height:34px;justify-content:center}
+.zone-marker .mk-sym{filter:drop-shadow(0 1px 2px rgba(0,0,0,.28))}
+.zone-marker .zplaced{position:static;transform:none;margin:0;font-size:inherit;background:#fff;padding:2px 7px;border-radius:8px;font-weight:700}
 .zone .zlabel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:.7rem;background:rgba(255,255,255,.9);padding:2px 8px;border-radius:10px;pointer-events:none;text-align:center;max-width:90%}
 .zone.droptarget{outline:3px solid var(--orange);outline-offset:3px;border-radius:12px}
 .drop-bank{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 6px;padding:12px;background:#fff;border:1px solid var(--line);border-radius:20px;min-height:44px}
@@ -100,30 +96,20 @@ button{font-family:inherit;font-size:0.95rem}
 .drop-head{margin-top:6px;font-size:.8rem;color:var(--ink-60);font-weight:700;text-transform:uppercase;letter-spacing:.05em}
 .zone .zplaced{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:#fff;border:1px solid var(--line);padding:3px 10px;border-radius:12px;font-size:.75rem;font-weight:700;pointer-events:none;box-shadow:0 1px 2px rgba(0,0,0,.12);max-width:90%}
 .zone.good .zplaced{background:var(--lime);border-color:var(--lime);color:var(--ink)}
+.zone.zone-marker .zplaced{position:static;left:auto;top:auto;transform:none;margin:0;font-size:inherit;background:#fff;border:1px solid var(--line);padding:2px 7px;border-radius:8px;font-weight:700;max-width:none;white-space:nowrap}
+.zone.zone-marker .zplaced.good{background:var(--lime);border-color:var(--lime);color:var(--ink)}
+.zone.zone-marker .zplaced.bad{background:#ff9d9d;border-color:#ff9d9d;color:var(--ink)}
 .zone.bad .zplaced{background:#ff9d9d;border-color:#ff9d9d;color:var(--ink)}
 /* Frise */
 .tl-wrap{background:#fff;border:1px solid var(--line);border-radius:22px;padding:14px;position:relative;overflow:hidden}
-.tl-axis{position:relative;height:44px;margin:40px 0 20px}
-.tl-line{position:absolute;left:0;right:0;top:20px;height:3px;background:var(--sky)}
-.tl-year{position:absolute;transform:translateX(-50%);top:0;font-size:.7rem;color:var(--ink-60);font-weight:600}
 .tl-stage{position:relative;background:#fff;border:1px solid var(--line);border-radius:22px;overflow:hidden;touch-action:none;user-select:none}
 .tl-stage img{display:block;width:100%;height:auto;pointer-events:none}
 .tl-title{margin:0 0 8px;font-size:1.1rem;color:var(--ink);font-weight:800}
-.tl-slot{position:absolute;transform:translate(-50%,-50%);top:22px;width:26px;height:26px;border:3px dashed #cbb;border-radius:50%;background:#fff}
-.tl-pool{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-.tl-chip{padding:10px 14px;background:var(--orange);color:#fff;border-radius:16px;cursor:pointer;font-size:.9rem;font-weight:700;box-shadow:none;transition:transform .1s}
-.tl-chip:active{transform:scale(.96)}
-.tl-chip.placed{background:var(--lime);color:var(--ink)}
-.tl-mark{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;cursor:pointer}
-.tl-mark .dot{width:20px;height:20px;border-radius:50%;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.2)}
-.tl-mark.pending .dot{background:#bbb}
-.tl-mark.ok .dot{background:var(--lime)}
-.tl-mark.err .dot{background:#ff9d9d}
-.tl-mark .lbl{font-size:.7rem;background:#fff;padding:3px 8px;border-radius:10px;margin-top:2px;text-align:center;font-weight:600;border:1px solid var(--line)}
 /* Texte à trous */
 .cloze-bank{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;min-height:40px}
 .cloze-word{padding:10px 14px;background:var(--orange);color:#fff;border-radius:16px;cursor:pointer;font-size:.9rem;font-weight:700;transition:transform .1s}
 .cloze-word:active{transform:scale(.96)}
+.cloze-word.selected{outline:3px solid var(--ink);transform:scale(1.08)}
 .cloze-word.used{background:var(--lime);color:var(--ink);pointer-events:none;text-decoration:none;opacity:.55}
 .cloze-text{background:#fff;border:1px solid var(--line);border-radius:20px;padding:18px;font-size:1.05rem;line-height:2.2}
 .cloze-gap{display:inline-block;min-width:90px;padding:4px 10px;border:2px dashed var(--orange);border-radius:14px;text-align:center;color:#bbb;cursor:pointer;margin:2px;font-weight:600}
@@ -171,7 +157,6 @@ button{font-family:inherit;font-size:0.95rem}
   .drop-bank{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding:8px}
   .drop-chip{justify-content:center;text-align:center;padding:12px 8px;font-size:.95rem;min-height:48px;border-radius:14px}
   .zone .zplaced{font-size:.7rem;padding:2px 5px}
-  .map-mark .lbl,.tl-mark .lbl{font-size:.6rem}
 }
 @media (pointer:coarse){
   .map-stage,.tl-stage{cursor:zoom-in}
@@ -289,6 +274,25 @@ function zonesHTML(zones, prefix) {
       const alpha = Math.round(a).toString(16).padStart(2, '0')
       const label = (z.label || '').trim()
       const dataLabel = label ? ` data-label="${esc(label)}"` : ''
+      if (z.shape === 'marker' && z.img && z.img.length >= 1) {
+        const c = z.img[0]
+        const glyph = SYMBOL_GLYPH[z.symbol] || '●'
+        const size = z.size || 22
+        const fs = z.fontSize || 12
+        const pos = z.labelPos || 'right'
+        const dir =
+          pos === 'left'
+            ? 'row-reverse'
+            : pos === 'top'
+              ? 'column-reverse'
+              : pos === 'bottom'
+                ? 'column'
+                : 'row'
+        // NB : aucune étiquette visible ici — c'est la réponse que l'élève doit placer.
+        return `<div class="zone zone-marker" data-pf="${prefix}" data-zone="${i}"${dataLabel} style="left:${c.x * 100}%;top:${c.y * 100}%;transform:translate(-50%,-50%);display:flex;flex-direction:${dir};align-items:center;gap:6px;padding:8px;font-size:${fs}px">
+          <span class="mk-sym" style="font-size:${size}px;line-height:1;color:${color}">${glyph}</span>
+        </div>`
+      }
       if (z.shape === 'circle' && z.img && z.img.length >= 1) {
         const c = z.img[0]
         const r = Math.max(0.01, z.radiusPct || 0.1)
@@ -325,23 +329,17 @@ function dropBankHTML(zones) {
 }
 
 function mapHTML(map, instr) {
-  // Marqueurs (repères clic classiques) : masqués dès qu'on utilise des zones,
-  // pour ne pas afficher d'anciens repères dans le mode zones.
-  const marks = (map.zones?.length ? [] : (map.markers || [])).map((mk, i) => {
-    const x = (mk.x ?? 0.5) * 100
-    const y = (mk.y ?? 0.5) * 100
-    const color = mk.color || '#2563eb'
-    return `<div class="map-mark" data-midx="${i}" data-x="${x}" data-y="${y}" data-ok="0" style="left:${x}%;top:${y}%">
-      <div class="dot" style="background:${color}"></div><div class="lbl">${esc(mk.label)}</div>
-    </div>`
-  })
+  // Mode zones (étiquettes à poser) : la consigne par défaut ne convient pas.
+  const consigne =
+    (map.zones?.length || 0) > 0
+      ? "Glissez ou cliquez chaque étiquette sur le bon repère de la carte, puis vérifiez vos réponses."
+      : instr
   const zones = zonesHTML(map.zones, 'map')
   return `
-<div class="map-block" data-instr="${esc(instr)}" data-mode="${esc(map.mode)}" data-center="${esc(JSON.stringify(map.center || [0, 0]))}" data-zoom="${map.zoom || 5}">
+<div class="map-block" data-instr="${esc(consigne)}" data-mode="${esc(map.mode)}" data-center="${esc(JSON.stringify(map.center || [0, 0]))}" data-zoom="${map.zoom || 5}">
   <div class="map-stage">
     ${map.imageDataUrl ? `<img src="${map.imageDataUrl}" data-bg="1" />` : ''}
     ${zones}
-    ${marks}
     <div class="map-msg" style="position:absolute;bottom:8px;left:8px;background:rgba(255,255,255,.9);padding:4px 10px;border-radius:6px;font-size:.8rem"></div>
   </div>
   ${dropBankHTML(map.zones)}
@@ -373,38 +371,14 @@ function timelineHTML(tl, instr) {
   <div class="result-panel hidden" id="tl-result"></div>
 </div>`
   }
-  // Mode compatible (axe horizontal, marqueurs → zones rect)
-  const mkData = tl.markers || []
-  const marks = mkData.map((mk, i) => {
-    const x = (mk.x ?? 0.5) * 100
-    return `<div class="tl-mark" data-tidx="${i}" data-x="${x}" data-ok="0" style="left:${x}%;top:50%">
-      <div class="dot"></div><div class="lbl">${esc(mk.label)}</div>
-    </div>`
-  })
-  const yearLabels = mkData
-    .map((mk, i) => {
-      const y = mk?.year
-      if (typeof y !== 'number') return ''
-      const x = (mk.x ?? 0.5) * 100
-      return `<div class="tl-year" style="left:${x}%">${esc(String(y))}</div>`
-    })
-    .join('')
+  // Frise sans image : l'axe chronologique (mode historique) est abandonné.
+  // On ne propose donc rien tant qu'aucune zone n'a été placée.
   return `
 <div class="tl-block" data-instr="${esc(instr)}">
   <div class="tl-title">${esc(title)}</div>
-  <div class="tl-wrap">
-    <div class="tl-axis">
-      <div class="tl-line"></div>
-      ${yearLabels}
-      ${marks.join('')}
-    </div>
-    <div class="tl-pool"></div>
+  <div class="tl-wrap" style="padding:20px;color:var(--ink-60)">
+    Ajoute une image de frise et place des repères pour construire cet exercice.
   </div>
-  <div class="actions-row">
-    <button class="primary" data-action="check-tl">Vérifier</button>
-    <button class="ghost" data-action="reset-tl">Recommencer</button>
-  </div>
-  <div class="result-panel hidden" id="tl-result"></div>
 </div>`
 }
 
@@ -434,6 +408,299 @@ function clozeHTML(cloze, instr) {
   </div>
   <div class="result-panel hidden" id="cloze-result"></div>
 </div>`
+}
+
+// ---------- Fiche objectifs (PDF) ----------
+function objectifsHTML(obj) {
+  const titre = (obj?.titre || 'FICHE D\'OBJECTIFS DE RÉVISION').trim()
+  const reperes = (obj?.reperes || []).filter(Boolean)
+  const explications = (obj?.explications || []).filter(Boolean)
+  const vocabulaire = obj?.vocabulaire || {}
+
+  const itemHTML = (text) => `
+    <div class="item">
+      <div class="cb"></div>
+      <span>${esc(text)}</span>
+    </div>`
+
+  const subItemHTML = (text) => `
+    <div class="sub-item">
+      <div class="cb"></div>
+      <span>${esc(text)}</span>
+    </div>`
+
+  const reperesHTML = reperes.map(itemHTML).join('')
+  const explicationsHTML = explications.map(itemHTML).join('')
+
+  const vocabulaireHTML = Object.entries(vocabulaire)
+    .map(([cat, mots]) => {
+      const motsFiltered = (mots || []).filter(Boolean)
+      if (motsFiltered.length === 0) return ''
+      return `
+        <div>
+          <div class="sub-title">${esc(cat)}</div>
+          ${motsFiltered.map(subItemHTML).join('')}
+        </div>`
+    })
+    .join('')
+
+  // On récupère le template CSS du fichier template.html (inliné ici pour l'export)
+  // Le template complet est dans template.html à la racine du projet
+  // Ici on génère un HTML autonome avec le même CSS
+  return `<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${esc(titre)}</title>
+    <script data-goatcounter="https://mbarth.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 12mm;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 9.5pt;
+            line-height: 1.25;
+            color: #1a1a2e;
+            background: #f0ebe3;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .page {
+            background: #f0ebe3;
+            padding: 10px 12px;
+        }
+
+        /* ===== EN-TÊTE ===== */
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .header-icon {
+            width: 34px;
+            height: 34px;
+            background: #1a1a2e;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .header-icon svg {
+            width: 20px;
+            height: 20px;
+            fill: none;
+            stroke: #ffffff;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .header-title {
+            flex: 1;
+            text-align: center;
+        }
+
+        .header-title h1 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 15pt;
+            font-weight: 800;
+            color: #1a1a2e;
+            letter-spacing: -0.3px;
+            line-height: 1.05;
+        }
+
+        /* ===== GRILLE HAUT ===== */
+        .top-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        /* ===== BLOCS ===== */
+        .card {
+            background: #ffffff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+        }
+
+        .card-label {
+            padding: 6px 14px;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 700;
+            font-size: 9pt;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #ffffff;
+        }
+
+        .card-label.green {
+            background: linear-gradient(135deg, #5b9a8b 0%, #7bc4b5 100%);
+        }
+
+        .card-label.orange {
+            background: linear-gradient(135deg, #c97b5a 0%, #e09a7a 100%);
+        }
+
+        .card-label.yellow {
+            background: linear-gradient(135deg, #d4a843 0%, #e8c76a 100%);
+            color: #3d3420;
+        }
+
+        .card-body {
+            padding: 8px 12px;
+        }
+
+        /* ===== CHECKBOX ITEMS ===== */
+        .item {
+            display: flex;
+            align-items: flex-start;
+            gap: 7px;
+            padding: 3px 0;
+            font-size: 8.6pt;
+            color: #2d2d3a;
+        }
+
+        .item + .item {
+            border-top: 1px solid #f0ece6;
+        }
+
+        .cb {
+            width: 13px;
+            height: 13px;
+            border: 2px solid #c0bdb5;
+            border-radius: 4px;
+            flex-shrink: 0;
+            margin-top: 1px;
+            background: #ffffff;
+        }
+
+        /* ===== SOUS-CATÉGORIES ===== */
+        .sub-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .sub-title {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 700;
+            font-size: 8.8pt;
+            color: #1a1a2e;
+            text-decoration: underline;
+            text-decoration-color: #c97b5a;
+            text-underline-offset: 3px;
+            margin-bottom: 4px;
+        }
+
+        .sub-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 2px 0;
+            font-size: 8.6pt;
+            color: #2d2d3a;
+        }
+
+        .sub-item .cb {
+            width: 12px;
+            height: 12px;
+        }
+
+        /* ===== BAS ===== */
+        .bottom-card {
+            background: #ffffff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+        }
+
+        .bottom-items {
+            padding: 8px 12px;
+        }
+        
+        @media print {
+            body { background: white; }
+            .page { padding: 0; min-height: 0; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+
+        <!-- EN-TÊTE -->
+        <div class="header">
+            <div class="header-icon">
+                <svg viewBox="0 0 24 24">
+                    <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/>
+                    <rect x="9" y="3" width="6" height="4" rx="1"/>
+                    <path d="M9 14l2 2 4-4"/>
+                </svg>
+            </div>
+            <div class="header-title">
+                <h1>${esc(titre)}</h1>
+            </div>
+        </div>
+
+        <!-- HAUT : 2 COLONNES -->
+        <div class="top-grid">
+
+            <!-- REPÈRES -->
+            <div class="card">
+                <div class="card-label green">Repères</div>
+                <div class="card-body">
+                    ${reperesHTML || '<div class="item"><div class="cb"></div><span style="color:#999">Aucun repère saisi</span></div>'}
+                </div>
+            </div>
+
+            <!-- VOCABULAIRE -->
+            <div class="card">
+                <div class="card-label orange">Notions & Vocabulaire</div>
+                <div class="card-body">
+                    <div class="sub-grid">
+                        ${vocabulaireHTML || '<div style="grid-column:1/-1;color:#999;padding:8px">Aucun vocabulaire saisi</div>'}
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- BAS : GRANDES LIGNES -->
+        <div class="bottom-card">
+            <div class="card-label yellow">Grandes lignes du cours à savoir expliquer</div>
+            <div class="bottom-items">
+                ${explicationsHTML || '<div class="item"><div class="cb"></div><span style="color:#999">Aucune explication saisie</span></div>'}
+            </div>
+        </div>
+
+    </div>
+</body>
+</html>`
 }
 
 function qcmHTML(qcm, instr) {
@@ -815,61 +1082,20 @@ const RUNTIME_JS = `
     stage.addEventListener('dblclick',function(){state.scale=1;state.tx=0;state.ty=0;apply();});
   }
 
-  // ---- Carte image (marqueurs simple clic, mode sans zones) ----
+  // ---- Carte image (zones) ----
   function initMap(){
     Array.prototype.forEach.call(root.querySelectorAll('.map-block'),function(block){
       if(block.querySelector('.drop-bank')){initZones(block);return}
       var stage=block.querySelector('.map-stage');
       if(stage.getAttribute('data-mode')!=='image')return;
-      var marks=Array.prototype.slice.call(stage.querySelectorAll('.map-mark'));
-      marks.forEach(function(m){
-        m.addEventListener('click',function(e){
-          e.preventDefault();
-          var rect=stage.getBoundingClientRect();
-          var x=((e.clientX-rect.left)/rect.width)*100;
-          var y=((e.clientY-rect.top)/rect.height)*100;
-          var mx=parseFloat(m.getAttribute('data-x'));
-          var my=parseFloat(m.getAttribute('data-y'));
-          var tol=4;
-          var ok=(Math.abs(x-mx)<=tol&&Math.abs(y-my)<=tol);
-          m.setAttribute('data-ok',ok?'1':'0');
-          m.classList.remove('pending');
-          if(ok){m.classList.add('ok');m.classList.remove('err')}
-          else{m.classList.add('err');m.classList.remove('ok')}
-          m.querySelector('.dot').style.background=ok?'#16a34a':'#dc2626';
-        });
-        m.classList.add('pending');
-      });
     });
     checkMap();
   }
 
-  // ---- Frise (zones ou axe++) ----
-  function makeChips(block){
-    var marks=Array.prototype.slice.call(block.querySelectorAll('.tl-mark'));
-    var pool=block.querySelector('.tl-pool');
-    pool.innerHTML='';
-    marks.forEach(function(m){
-      var lbl=m.querySelector('.lbl').textContent;
-      var chip=document.createElement('span');
-      chip.className='tl-chip';
-      chip.textContent=lbl;
-      chip.setAttribute('data-for',m.getAttribute('data-tidx'));
-      chip.addEventListener('click',function(){
-        if(chip.classList.contains('placed')){chip.classList.remove('placed');m.classList.remove('ok','err');m.classList.add('pending');m.setAttribute('data-ok','0');return}
-        m.classList.remove('pending');
-        m.classList.add('ok');
-        m.setAttribute('data-ok','1');
-        m.querySelector('.dot').style.background='#16a34a';
-        chip.classList.add('placed');
-      });
-      pool.appendChild(chip);
-    });
-  }
+  // ---- Frise (zones) ----
   function initTimeline(){
     Array.prototype.forEach.call(root.querySelectorAll('.tl-block'),function(block){
       if(block.querySelector('.drop-bank')){initZones(block);return}
-      makeChips(block);
     });
     checkTl();
   }
@@ -881,14 +1107,17 @@ const RUNTIME_JS = `
       var bank=block.querySelector('.cloze-bank');
       var gaps=Array.prototype.slice.call(block.querySelectorAll('.cloze-gap'));
       var answers=gaps.map(function(g){return g.getAttribute('data-word')});
-      // Construit la banque : mots attendus + distracteurs
       var words=answers.slice();
-      var attrs=block.querySelector('.cloze-text').innerHTML;
-      // distracteurs : on les reconstruit depuis data attrs si dispo
       var distractors=block.getAttribute('data-distractors')?block.getAttribute('data-distractors').split('|'):[];
       var bankWords=shuffle(words.concat(distractors));
       bank.innerHTML='';
-      var chips=[];
+      var selectedWord=null;
+      var selectedChip=null;
+      function clearSelection(){
+        if(selectedChip){selectedChip.classList.remove('selected')}
+        selectedWord=null;
+        selectedChip=null;
+      }
       bankWords.forEach(function(w){
         if(!w)return;
         var c=document.createElement('span');
@@ -896,26 +1125,29 @@ const RUNTIME_JS = `
         c.textContent=w;
         c.addEventListener('click',function(){
           if(c.classList.contains('used'))return;
-          var empty=gaps.filter(function(g){return g.classList.contains('filled')===false && g.getAttribute('data-word')!==''});
-          // place dans le premier trou vide
-          var target=gaps.find(function(g){return !g.classList.contains('filled')});
-          if(!target)return;
-          target.textContent=w;
-          target.classList.add('filled');
-          c.classList.add('used');
+          if(selectedChip===c){clearSelection();return}
+          clearSelection();
+          selectedWord=w;
+          selectedChip=c;
+          c.classList.add('selected');
         });
         bank.appendChild(c);
-        chips.push(c);
       });
-      gaps.forEach(function(g,i){
+      gaps.forEach(function(g){
         g.addEventListener('click',function(){
-          if(!g.classList.contains('filled'))return;
-          // retire le mot
-          var w=g.textContent;
-          g.textContent='_';
-          g.classList.remove('filled');
-          var c=Array.prototype.find.call(bank.querySelectorAll('.cloze-word'),function(x){return x.textContent===w&&x.classList.contains('used')});
-          if(c)c.classList.remove('used');
+          if(g.classList.contains('filled')){
+            var w=g.textContent;
+            g.textContent='_';
+            g.classList.remove('filled');
+            var chip=Array.prototype.find.call(bank.querySelectorAll('.cloze-word'),function(x){return x.textContent===w&&x.classList.contains('used')});
+            if(chip)chip.classList.remove('used');
+            return;
+          }
+          if(!selectedWord)return;
+          g.textContent=selectedWord;
+          g.classList.add('filled');
+          selectedChip.classList.add('used');
+          clearSelection();
         });
       });
     });
@@ -994,11 +1226,8 @@ const RUNTIME_JS = `
           res.innerHTML='<strong>'+ok+'</strong> / '+total+' bien placé(s)'+progressHTML(ok,total);
           return;
         }
-        var marks=Array.prototype.slice.call(block.querySelectorAll('.tl-mark'));
-        var ok=marks.filter(function(m){return m.getAttribute('data-ok')==='1'}).length;
-        var total=marks.length;
-        res.classList.remove('hidden');
-        res.innerHTML='<strong>'+ok+'</strong> / '+total+' placé(s)'+progressHTML(ok,total);
+        var res2=block.querySelector('#tl-result');
+        if(res2){res2.classList.remove('hidden');res2.innerHTML='<strong>0</strong> / 0 placé(s)'+progressHTML(0,0);}
       });
     });
   }
@@ -1077,7 +1306,7 @@ const RUNTIME_JS = `
 
 // ---------- Assemblage final ----------
 export function buildExerciseHtml(m) {
-  m = JSON.parse(JSON.stringify(m)) // copie
+  // Pas de copie : la fonction ne modifie jamais l'exercice reçu.
   
   // Grouper les exercices par type
   const exercisesByKind = {
@@ -1092,11 +1321,10 @@ export function buildExerciseHtml(m) {
   if (m.pairs.length) exercisesByKind.matching.push({ index: 0, label: 'Appariement' })
   if (m.cards.length) exercisesByKind.flashcards.push({ index: 0, label: 'Flashcards' })
   m.maps.forEach((map, i) => {
-    if (map.markers.length || map.zones.length)
-      exercisesByKind.map.push({ index: i, label: m.maps.length > 1 ? `Repérage ${i + 1}` : 'Repérage' })
+    if (map.zones.length) exercisesByKind.map.push({ index: i, label: m.maps.length > 1 ? `Repérage ${i + 1}` : 'Repérage' })
   })
   m.timelines.forEach((tl, i) => {
-    if ((tl.markers?.length || 0) > 0 || (tl.zones?.length || 0) > 0)
+    if ((tl.zones?.length || 0) > 0)
       exercisesByKind.timeline.push({ index: i, label: tl.title || 'Frise chronologique' })
   })
   m.clozes.forEach((cz, i) => {
@@ -1145,6 +1373,7 @@ export function buildExerciseHtml(m) {
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>${esc(m.title || 'Exercice de révision')}</title>
+<script data-goatcounter="https://mbarth.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 <style>${RUNTIME_CSS}</style>
 </head>
 <body>
@@ -1155,4 +1384,8 @@ export function buildExerciseHtml(m) {
 <script>${RUNTIME_JS}</script>
 </body>
 </html>`
+}
+
+export function buildObjectifsHtml(obj) {
+  return objectifsHTML(obj)
 }

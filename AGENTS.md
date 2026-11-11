@@ -31,13 +31,35 @@ L'élève reçoit un fichier HTML autonome (pas de dépendances, fonctionne hors
 - **Pas de HTML5 DnD** — tout est en clic + Pointer Events (mobile-friendly)
 
 ## Fonctionnalités
-- Import CSV (notions, QCM, appariements) avec séparateur auto-détecté
+- Import CSV (notions, QCM, appariements, fiche d'objectifs, repères de carte) avec séparateur auto-détecté
+- Décodeur CSV unique (`src/lib/csv.js` → `decodeCsvBuffer`) : UTF-8, UTF-16, CP850 (DOS), Windows-1252, BOM
 - Prompt maître copiable pour générer des CSV via IA
 - Export HTML autonome avec page d'accueil (grille d'exercices)
 - Progress bars après vérification
 - Bouton "Recommencer" sur tous les types
 - Flashcards avec flip 3D
+- Repères de carte : cercle, rectangle ou symbole (banque de ~65 glyphes, avec taille,
+  position et taille de police de l'étiquette). Import CSV de repères géoréférencés.
 - Zones drag & drop pour frise/carte image
+- Sauvegarde automatique différée (600 ms) dans le navigateur + alerte si le quota est atteint
+- Téléchargement en Blob (les URL `data:` cassent au-delà de ~2 Mo)
+
+## Repères de carte : format CSV
+`nom;forme;x1;y1;x2;y2;categorie;symbole;taille;position;police`
+- `circle` : x1,y1 = centre, x2 = rayon en % de la largeur
+- `rect`   : x1,y1 et x2,y2 = deux coins
+- `marker` : x1,y1 = position, puis symbole (`pin`, `star`, `square`…), taille (px),
+  position de l'étiquette (`right`, `left`, `top`, `bottom`), police (px)
+
+## Règles techniques
+- `radiusPct` est une **fraction** de la largeur de l'image (0-1), pas un pourcentage.
+- Les emoji (📍 🧭 🌊…) ne se recolorent pas : utiliser les formes géométriques ou
+  la famille « traits fins » pour un symbole à la couleur de la carte.
+- L'étiquette attendue n'est jamais visible dans la page élève : elle est placée
+  par l'élève (glisser-déposer ou clic).
+- Pas de doublon d'étiquette : la banque d'étiquettes de l'élève est dédoublonnée
+  (l'éditeur alerte).
+- Les anciens « marqueurs » (mode obsolète) sont migrés automatiquement en zones.
 
 ## Notes
 - `npm.cmd run build` (pas `npm run build`) sur ce PC Windows

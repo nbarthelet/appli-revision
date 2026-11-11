@@ -12,14 +12,134 @@ export const EXERCISE_TYPES = {
 }
 
 export const SYMBOLS = {
-  circle: { label: 'Rond', glyph: '●' },
-  pin: { label: 'Épingle', glyph: '📍' },
-  square: { label: 'Carré', glyph: '■' },
-  triangle: { label: 'Triangle', glyph: '▲' },
-  diamond: { label: 'Losange', glyph: '◆' },
+  // --- Formes ---
+  circle: { label: 'Rond plein', glyph: '●' },
+  circleOutline: { label: 'Rond creux', glyph: '○' },
+  circleDot: { label: 'Rond pointé', glyph: '⊙' },
+  circleDouble: { label: 'Rond double', glyph: '◎' },
+  circleHalf: { label: 'Rond demi', glyph: '◐' },
+  square: { label: 'Carré plein', glyph: '■' },
+  squareOutline: { label: 'Carré creux', glyph: '□' },
+  squareDot: { label: 'Carré pointé', glyph: '▣' },
+  squareSmall: { label: 'Petit carré', glyph: '▪' },
+  diamond: { label: 'Losange plein', glyph: '◆' },
+  diamondOutline: { label: 'Losange creux', glyph: '◇' },
+  diamondDot: { label: 'Losange pointé', glyph: '◈' },
+  triangle: { label: 'Triangle plein', glyph: '▲' },
+  triangleOutline: { label: 'Triangle creux', glyph: '△' },
+  triangleRight: { label: 'Triangle droit', glyph: '▶' },
+  triangleDown: { label: 'Triangle bas', glyph: '▼' },
+  hexagon: { label: 'Hexagone', glyph: '⬢' },
+
+  // --- Étoiles ---
   star: { label: 'Étoile', glyph: '★' },
+  starOutline: { label: 'Étoile creuse', glyph: '☆' },
+  starFour: { label: 'Étoile à 4 branches', glyph: '✦' },
+  starBurst: { label: 'Étoile éclatante', glyph: '✳' },
+  starSparkle: { label: 'Étoile fine', glyph: '✴' },
+  sun: { label: 'Soleil', glyph: '☀' },
+
+  // --- Croix ---
   cross: { label: 'Croix', glyph: '✚' },
+  crossThin: { label: 'Croix fine', glyph: '✛' },
+  saltire: { label: 'Croix de Saint-André', glyph: '✕' },
+  crossHeavy: { label: 'Croix pleine', glyph: '✖' },
+  crossOpen: { label: 'Croix ouverte', glyph: '✝' },
+
+  // --- Flèches ---
+  arrowUp: { label: 'Flèche haut', glyph: '⬆' },
+  arrowDown: { label: 'Flèche bas', glyph: '⬇' },
+  arrowLeft: { label: 'Flèche gauche', glyph: '⬅' },
+  arrowRight: { label: 'Flèche droite', glyph: '➡' },
+  arrowNE: { label: 'Flèche nord-est', glyph: '↗' },
+  arrowSE: { label: 'Flèche sud-est', glyph: '↘' },
+  arrowSW: { label: 'Flèche sud-ouest', glyph: '↙' },
+  arrowNW: { label: 'Flèche nord-ouest', glyph: '↖' },
+
+  // --- Géographie ---
+  pin: { label: 'Épingle', glyph: '📍' },
+  flag: { label: 'Drapeau', glyph: '⚑' },
+  anchor: { label: 'Ancre', glyph: '⚓' },
+  compass: { label: 'Boussole', glyph: '🧭' },
+  mountain: { label: 'Montagne', glyph: '⛰' },
+  volcano: { label: 'Volcan', glyph: '🌋' },
+  island: { label: 'Île', glyph: '🏝' },
+  wave: { label: 'Vague', glyph: '🌊' },
+  mosque: { label: 'Mosquée', glyph: '🕌' },
+  temple: { label: 'Temple', glyph: '⛩' },
+  castle: { label: 'Château', glyph: '🏰' },
+  tent: { label: 'Tente', glyph: '⛺' },
+  palm: { label: 'Palmier', glyph: '🌴' },
+  desert: { label: 'Désert', glyph: '🏜' },
+  ship: { label: 'Navire', glyph: '🚢' },
   rect: { label: 'Rectangle', glyph: '▬' },
+
+  // --- Variantes « traits fins » : monochromes, donc recolorables ---
+  posTarget: { label: 'Position (cible)', glyph: '⌖' },
+  posCross: { label: 'Position (croix)', glyph: '⊕' },
+  relief: { label: 'Relief (montagne)', glyph: '⛰' },
+  torii: { label: 'Temple (torii)', glyph: '⛩' },
+  fountain: { label: 'Fontaine', glyph: '⛲' },
+  plane: { label: 'Aviation', glyph: '✈' },
+  home: { label: 'Maison', glyph: '⌂' },
+  shipMono: { label: 'Navire (traits)', glyph: '⛴' },
+  waveMono: { label: 'Vague (traits)', glyph: '≋' },
+  snow: { label: 'Neige', glyph: '❄' },
+  gear: { label: 'Rouage', glyph: '⚙' },
+  moon: { label: 'Lune', glyph: '☾' },
+  flagLine: { label: 'Drapeau (ligne)', glyph: '⚐' },
+}
+
+// Symboles « emoji » : leur couleur est imposée par la police, ils ne se
+// recolorent donc pas. Les variantes géométriques ci-dessus se recolorent.
+export const EMOJI_SYMBOLS = new Set([
+  'pin', 'compass', 'volcano', 'island', 'wave', 'mosque', 'castle', 'tent', 'palm', 'desert', 'ship',
+])
+
+// Banque de symboles, organisée par famille (affichée dans l'éditeur)
+export const SYMBOL_GROUPS = [
+  {
+    name: 'Formes',
+    keys: [
+      'circle', 'circleOutline', 'circleDot', 'circleDouble', 'circleHalf',
+      'square', 'squareOutline', 'squareDot', 'squareSmall',
+      'diamond', 'diamondOutline', 'diamondDot',
+      'triangle', 'triangleOutline', 'triangleRight', 'triangleDown', 'hexagon',
+    ],
+  },
+  { name: 'Étoiles', keys: ['star', 'starOutline', 'starFour', 'starBurst', 'starSparkle', 'sun'] },
+  { name: 'Croix', keys: ['cross', 'crossThin', 'saltire', 'crossHeavy', 'crossOpen'] },
+  {
+    name: 'Flèches',
+    keys: ['arrowUp', 'arrowDown', 'arrowLeft', 'arrowRight', 'arrowNE', 'arrowSE', 'arrowSW', 'arrowNW'],
+  },
+  {
+    name: 'Géographie',
+    keys: [
+      'pin', 'flag', 'anchor', 'compass', 'mountain', 'volcano', 'island', 'wave',
+      'mosque', 'temple', 'castle', 'tent', 'palm', 'desert', 'ship',
+    ],
+  },
+  {
+    name: 'Traits fins (recolorables)',
+    keys: [
+      'posTarget', 'posCross', 'relief', 'torii', 'fountain', 'plane', 'home',
+      'shipMono', 'waveMono', 'snow', 'gear', 'moon', 'flagLine', 'anchor', 'flag',
+    ],
+  },
+]
+
+// Glyphe associé à un symbole (repère ponctuel)
+export const SYMBOL_GLYPH = Object.fromEntries(
+  Object.entries(SYMBOLS).map(([k, v]) => [k, v.glyph])
+)
+
+// Position de l'étiquette par rapport au symbole
+export const LABEL_POSITIONS = {
+  right: 'À droite',
+  left: 'À gauche',
+  top: 'Au-dessus',
+  bottom: 'En dessous',
 }
 
 export const DEFAULT_INSTRUCTIONS = {
@@ -27,7 +147,7 @@ export const DEFAULT_INSTRUCTIONS = {
     "Chaque paire relie un élément A (ex. argument) à un élément B (ex. notion). L'ordre des colonnes est mélangé pour l'élève.",
   flashcards:
     'Retournez chaque carte pour lire la réponse, puis attribuez un statut : V maîtrisé, ~ à consolider, ? à revoir.',
-  map: "Cliquez ou touchez la carte pour placer chaque lieu à l'endroit attendu, puis vérifiez vos réponses.",
+  map: "Glissez ou cliquez chaque étiquette sur le bon repère de la carte, puis vérifiez vos réponses.",
   timeline:
     'Placez chaque événement sur la frise à la bonne date (glisser-déposer ou clic), puis vérifiez vos réponses.',
   cloze: "Cliquez sur un mot de la banque, puis sur un emplacement du texte pour le placer (ou glissez-le). Touchez un mot placé pour le retirer.",
@@ -80,6 +200,18 @@ export function newZone(shape = 'rect') {
   if (shape === 'circle') {
     return { ...common, shape: 'circle', img: [{ x: 0.5, y: 0.5 }], radiusPct: 0.1, geo: [] }
   }
+  if (shape === 'marker') {
+    return {
+      ...common,
+      shape: 'marker',
+      img: [{ x: 0.5, y: 0.5 }],
+      geo: [],
+      symbol: 'pin',
+      size: 22,
+      fontSize: 12,
+      labelPos: 'right',
+    }
+  }
   return {
     ...common,
     shape: 'rect',
@@ -94,6 +226,10 @@ export function newZone(shape = 'rect') {
 // Retourne la géométrie d'affichage d'une zone en coordonnées relatives (0-1)
 export function zoneGeometry(z, stageW, stageH) {
   if (!z) return null
+  if (z.shape === 'marker' && z.img.length >= 1) {
+    const c = z.img[0]
+    return { shape: 'marker', cx: c.x, cy: c.y, r: 0.02 }
+  }
   if (z.shape === 'circle' && z.img.length >= 1) {
     const c = z.img[0]
     // rayon en fraction de la largeur de la scène
@@ -121,21 +257,27 @@ export function zoneGeometry(z, stageW, stageH) {
 }
 
 export function normalizeZone(z) {
-  if (!z || (z.shape !== 'rect' && z.shape !== 'circle')) return null
+  if (!z || !['rect', 'circle', 'marker'].includes(z.shape)) return null
   const img = (z.img || []).filter(validImg)
   const ok =
-    z.shape === 'rect' ? img.length >= 2 : z.shape === 'circle' ? img.length >= 1 : false
+    z.shape === 'rect' ? img.length >= 2 : img.length >= 1
   if (!ok) return null
+  const size = Number(z.size)
+  const fontSize = Number(z.fontSize)
   return {
     id: z.id || uid('z-'),
     label: z.label || '',
     shape: z.shape,
-    img,
+    img: z.shape === 'rect' ? img.slice(0, 2) : [img[0]],
     geo: (z.geo || []).filter(validGeo),
     radiusKm: typeof z.radiusKm === 'number' ? z.radiusKm : 0,
     radiusPct: typeof z.radiusPct === 'number' ? z.radiusPct : 0,
     color: z.color || '#2563eb',
     opacity: typeof z.opacity === 'number' ? Math.max(0.05, Math.min(0.9, z.opacity)) : 0.3,
+    symbol: z.symbol && z.symbol in SYMBOLS ? z.symbol : 'pin',
+    size: Number.isFinite(size) ? Math.max(8, Math.min(72, size)) : 22,
+    fontSize: Number.isFinite(fontSize) ? Math.max(7, Math.min(28, fontSize)) : 12,
+    labelPos: z.labelPos in LABEL_POSITIONS ? z.labelPos : 'right',
   }
 }
 
@@ -156,7 +298,7 @@ function normalizeMarkerStyle(m) {
 export function emptyMap() {
   return {
     id: uid('map-'),
-    mode: 'osm',
+    mode: 'image',
     imageDataUrl: '',
     imageName: '',
     imageWidth: 0,
@@ -169,23 +311,39 @@ export function emptyMap() {
   }
 }
 
+// Migration : les anciens « marqueurs » (mode obsolète où l'étiquette était
+// visible dans l'export, donc la réponse donnée) deviennent des zones-cercles.
+function markersToZones(markers) {
+  return (markers || [])
+    .filter((m) => m && typeof m.x === 'number' && typeof m.y === 'number')
+    .map((m) => ({
+      id: m.id || uid('z-'),
+      label: m.label || '',
+      shape: 'circle',
+      img: [{ x: m.x, y: m.y }],
+      geo: [],
+      radiusKm: 0,
+      radiusPct: 0.03,
+      color: m.color || '#2563eb',
+      opacity: 0.3,
+    }))
+}
+
 export function normalizeMap(m) {
+  const zones = (m?.zones || []).map(normalizeZone).filter((x) => x !== null)
+  const migrated = markersToZones(m?.markers)
   return {
     id: m?.id || uid('map-'),
-    mode: m?.mode === 'image' ? 'image' : 'osm',
+    mode: m?.mode === 'osm' ? 'osm' : 'image',
     imageDataUrl: m?.imageDataUrl || '',
     imageName: m?.imageName || '',
     imageWidth: m?.imageWidth || 0,
     imageHeight: m?.imageHeight || 0,
     center: m?.center || [46.6, 2.4],
     zoom: m?.zoom || 5,
-    markers: (m?.markers || []).map((x) => ({
-      ...x,
-      symbol: normalizeSymbol(x.symbol),
-      ...normalizeMarkerStyle(x),
-    })),
+    markers: [],
     defaultSymbol: normalizeSymbol(m?.defaultSymbol),
-    zones: (m?.zones || []).map(normalizeZone).filter((x) => x !== null),
+    zones: zones.length ? zones : migrated,
   }
 }
 
@@ -287,6 +445,11 @@ export function normalizeTimeline(m) {
   }
   out.markers = marks
   out.zones = zones
+  // Migration : les anciens marqueurs de frise deviennent des zones-cercles.
+  if (!out.zones.length && out.markers.length) {
+    out.zones = markersToZones(out.markers)
+    out.markers = []
+  }
   return out
 }
 
@@ -409,7 +572,7 @@ export function exerciseBlocks(m) {
   if (m.pairs.length) blocks.push({ kind: 'matching', index: 0, label: 'Appariement' })
   if (m.cards.length) blocks.push({ kind: 'flashcards', index: 0, label: 'Flashcards' })
   m.maps.forEach((map, i) => {
-    if (map.markers.length || map.zones.length)
+    if (map.zones.length)
       blocks.push({
         kind: 'map',
         index: i,
@@ -417,7 +580,7 @@ export function exerciseBlocks(m) {
       })
   })
   m.timelines.forEach((tl, i) => {
-    if ((tl.markers?.length || 0) > 0 || (tl.zones?.length || 0) > 0)
+    if ((tl.zones?.length || 0) > 0)
       blocks.push({
         kind: 'timeline',
         index: i,

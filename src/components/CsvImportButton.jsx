@@ -1,6 +1,8 @@
 import { useRef } from 'react'
+import { decodeCsvBuffer } from '../lib/csv.js'
 
-// Bouton d'import CSV générique. Lit le fichier en texte et appelle onFile(text).
+// Bouton d'import CSV générique. Lit le fichier (UTF-8/UTF-16/CP850/Win-1252)
+// et appelle onFile(texte, nomDuFichier).
 export default function CsvImportButton({ onFile, label = 'Importer CSV', accept = '.csv,text/csv,text/plain', small = false }) {
   const ref = useRef(null)
   const handle = (e) => {
@@ -9,9 +11,13 @@ export default function CsvImportButton({ onFile, label = 'Importer CSV', accept
     const reader = new FileReader()
     reader.onerror = () => alert('Lecture du fichier impossible.')
     reader.onload = () => {
-      onFile(String(reader.result || ''), f.name)
+      try {
+        onFile(decodeCsvBuffer(reader.result), f.name)
+      } catch (err) {
+        alert('Lecture du fichier impossible : ' + (err?.message || err))
+      }
     }
-    reader.readAsText(f, 'utf-8')
+    reader.readAsArrayBuffer(f)
     e.target.value = ''
   }
   return (
