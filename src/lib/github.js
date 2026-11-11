@@ -72,8 +72,30 @@ async function getFileSha(owner, repo, branch, path, token) {
 }
 
 // Envoie (crée ou met à jour) un fichier dans le dépôt.
+// Priorité au credential git local en développement (via le serveur Vite),
+// sinon au jeton « Personal access token » stocké dans le navigateur.
 export async function publishFile({ settings, owner, repo, branch, path, content, message }) {
+  if (import.meta.env.DEV) {
+    const res = await fetch('/__github/publish', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ owner, repo, branch, path, content, message }),
+    }).catch(() => null)
+    if (res && res.ok) {
+      return res.json().catch(() => ({ ok: true }))
+    }
+    if (res && !settings.token) {
+      const data = await res.json().catch(() => ({}))
+      throw new Error(data.error || 'Publication impossible.')
+    }
+  }
   const token = settings.token
+  if (!token) {
+    throw new Error(
+      "Aucun jeton GitHub. Soit l'application est lancée depuis le serveur local du projet " +
+        '(publication via le credential git), soit il faut saisir un jeton dans l’onglet Publier.'
+    )
+  }
   const sha = await getFileSha(owner, repo, branch, path, token)
   const body = {
     message: message || `Publication : ${path}`,
@@ -83,12 +105,26 @@ export async function publishFile({ settings, owner, repo, branch, path, content
   if (sha) body.sha = sha
   await gh(`${API}/repos/${owner}/${repo}/contents/${encodePath(path)}`, token, {
     method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   })
 }
 
-// Vérifie que le jeton permet d'accéder au dépôt (lecture).
+// Vérifie qu'une connexion est possible.
+// En développement, le serveur local utilise le credential git de la machine :
+// aucun jeton n'est alors nécessaire dans le navigateur.
 export async function testConnection({ settings, owner, repo }) {
+  if (import.meta.env.DEV) {
+    const res = await fetch('/__github/publish', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ owner, repo, path: '__connexion__.html', content: 'test' }),
+    }).catch(() => null)
+    if (res && res.ok) {
+      const data = await res.json().catch(() => ({}))
+      return { ok: true, name: repo, fullName: `${owner}/${repo}`, defaultBranch: 'main', via: data.via }
+    }
+  }
   const data = await gh(`${API}/repos/${owner}/${repo}`, settings.token)
   return {
     ok: true,

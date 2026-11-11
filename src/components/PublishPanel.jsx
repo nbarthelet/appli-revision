@@ -12,6 +12,9 @@ export default function PublishPanel({ ex }) {
   const [busy, setBusy] = useState(false)
   const [tested, setTested] = useState(false)
   const [publishedUrl, setPublishedUrl] = useState('')
+  // En développement, le serveur local publie avec le credential git du poste :
+  // aucun jeton n'est nécessaire (et rien n'est stocké dans le navigateur).
+  const localMode = import.meta.env.DEV
 
   const html = useMemo(() => {
     try {
@@ -134,13 +137,22 @@ export default function PublishPanel({ ex }) {
       <div className="card">
         <h2>1. Connexion GitHub (une seule fois)</h2>
         <label className="field">
-          <span>Jeton (fine-grained) — collé ici</span>
+          <span>
+            Jeton (fine-grained) — {localMode ? 'facultatif en local' : 'collé ici'}
+          </span>
           <input
             type="password"
             placeholder="github_pat_…"
             value={settings.token}
             onChange={(e) => setSettings({ ...settings, token: e.target.value })}
           />
+          {localMode && (
+            <span className="hint" style={{ display: 'block', marginTop: 4 }}>
+              En local, le serveur utilise le credential git déjà présent sur le poste
+              (celui du <span className="mono">git push</span>) : rien à coller, et rien n'est
+              stocké dans le navigateur.
+            </span>
+          )}
         </label>
         <label className="field">
           <span>Dépôt de révisions</span>
@@ -172,7 +184,7 @@ export default function PublishPanel({ ex }) {
         </div>
         <div className="row">
           <button className="btn ghost" onClick={onSave} disabled={busy}>Enregistrer</button>
-          <button className="btn ghost" onClick={onTest} disabled={busy || !settings.token || !repo}>
+          <button className="btn ghost" onClick={onTest} disabled={busy || (!localMode && !settings.token) || !repo}>
             {busy ? '…' : 'Tester la connexion'}
           </button>
         </div>
@@ -206,7 +218,7 @@ export default function PublishPanel({ ex }) {
         </p>
         <button
           className="btn"
-          disabled={busy || !settings.token || !owner || !repo}
+          disabled={busy || (!localMode && !settings.token) || !owner || !repo}
           onClick={onPublish}
         >
           {busy ? 'Publication en cours…' : 'Publier sur GitHub'}
